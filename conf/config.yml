@@ -1,0 +1,36 @@
+---
+core:
+  ADMINUSER: admin
+  AGUADIR: agua
+  AGUAUSER: agua
+  AUTHOR: syoung
+  EXECUTION_TEMPDIR: /tmp
+  INSTALLDIR: /f
+  TEMPDIR: /tmp
+  USERDIR: /home
+cluster:
+  CANCELJOB: '/opt/sge6/bin/lx24-amd64/qdel -j'
+  QSTAT: /opt/sge6/bin/lx24-amd64/qstat
+  QSUB: /opt/sge6/bin/lx24-amd64/qsub
+  SGEBIN: /opt/sge6/bin/lx24-amd64
+  SGEEXECDPORT: '63232'
+  SGEQMASTERPORT: '63231'
+  SGEROOT: /opt/sge6
+  SLEEP: '5'
+database:
+  DATABASE: agua
+  DBFILE: db/agua.sqlite
+  DBTYPE: SQLite
+  DUMPFILE: bin/sql/dump/agua.dump
+  GUESTPASSWORD: guest
+  GUESTUSER: guest
+  MYSQLDATA: /var/lib/mysql
+  PASSWORD: xxxxxxxxxx
+  SESSIONTIMEOUT: '24'
+  TESTDATABASE: aguatest
+  TESTDBFILE: db/test.sqlite
+  TESTDBTYPE: SQLite
+  TESTPASSWORD: xxxxxxxxxxx
+  TESTSESSIONID: xxxxxxxxxxx
+  TESTUSER: testuser
+  USER: agua

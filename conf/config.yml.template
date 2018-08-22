@@ -1,0 +1,37 @@
+---
+agua:
+  ADMINUSER: admin
+  AGUADIR: agua
+  AGUAUSER: agua
+  CLUSTERTYPE: SGE
+  INSTALLDIR: /nfs/home/Stuart.Young/repos/agua
+  SGEROOT: /nfs/univa
+  TEMPDIR: /tmp
+  USERDIR: /home
+cluster:
+  CANCELJOB: '/nfs/univa/bin/lx24-amd64/qdel -j'
+  QSTAT: /nfs/univa/bin/lx-amd64/qstat
+  QSUB: /nfs/univa/bin/lx-amd64/qsub
+  SGEBIN: /nfs/univa/bin/lx24-amd64
+  SGEEXECDPORT: '63232'
+  SGEQMASTERPORT: '63231'
+  SGEROOT: /nfs/univa
+  SLEEP: '5'
+database:
+  DATABASE: agua
+  DBFILE: db/agua.sqlite
+  DBTYPE: SQLite
+  DUMPFILE: bin/sql/dump/agua.dump
+  GUESTPASSWORD: guest
+  GUESTUSER: guest
+  PASSWORD: '12345678'
+  SESSIONTIMEOUT: '24'
+  TESTDATABASE: aguatest
+  TESTPASSWORD: '12345678'
+  TESTSESSIONID: 12345567890.1234.123
+  TESTUSER: testuser
+  USER: agua
+packages:
+  biorepository:
+    0.8.0-beta.1+build.725:
+      INSTALLDIR: /nfs/home/Stuart.Young/repos/aguadev/repos/public/agua/biorepository
