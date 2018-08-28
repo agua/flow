@@ -1,0 +1,56 @@
+[submodule "extlib"]
+	path = extlib
+	url = https://github.com/agua/agua-extlib
+	branch = dev
+[submodule "lib/DBase"]
+	path = lib/DBase
+	url = https://github.com/agua/agua-dbase
+	branch = dev
+[submodule "lib/Doc"]
+	path = lib/Doc
+	url = https://github.com/agua/agua-doc
+	branch = dev
+[submodule "lib/Engine"]
+	path = lib/Engine
+	url = https://github.com/agua/agua-engine
+	branch = dev
+[submodule "lib/Exchange"]
+	path = lib/Exchange
+	url = https://github.com/agua/agua-exchange
+	branch = dev
+[submodule "lib/File"]
+	path = lib/File
+	url = https://github.com/agua/agua-file
+	branch = dev
+[submodule "lib/Ops"]
+	path = lib/Ops
+	url = https://github.com/agua/agua-ops
+	branch = dev
+[submodule "lib/Package"]
+	path = lib/Package
+	url = https://github.com/agua/agua-package
+	branch = dev
+[submodule "lib/Table"]
+	path = lib/Table
+	url = https://github.com/agua/agua-table
+	branch = dev
+[submodule "lib/Test"]
+	path = lib/Test
+	url = https://github.com/agua/agua-test
+	branch = dev
+[submodule "lib/Util"]
+	path = lib/Util
+	url = https://github.com/agua/agua-util
+	branch = dev
+[submodule "lib/Virtual"]
+	path = lib/Virtual
+	url = https://github.com/agua/agua-virtual
+	branch = dev
+[submodule "lib/Web"]
+	path = lib/Web
+	url = https://github.com/agua/agua-web
+	branch = dev
+[submodule "lib/Conf"]
+	path = lib/Conf
+	url = https://github.com/agua/agua-conf
+	branch = dev

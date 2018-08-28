@@ -73,6 +73,7 @@ use JSON;
 # use Scalar::Util qw(weaken);
 use FindBin qw($Bin);
 use lib "$Bin/../..";
+use lib "$Bin/../extlib/lib/perl5";
 
 #### EXTERNAL MODULES
 use Term::ANSIColor qw(:constants);
@@ -96,7 +97,7 @@ GetOptions (
 usage() if defined $help;
 
 #### SET CONF FILE
-my $installdir  =   $ENV{'FLOW_HOME'};
+my $installdir  =   "$Bin/../../../..";
 if ( not defined $installdir ) {
   print "Can't find FLOW_HOME environment variable. Exiting\n";
   exit;
