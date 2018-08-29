@@ -73,12 +73,10 @@ use JSON;
 # use Scalar::Util qw(weaken);
 use FindBin qw($Bin);
 use lib "$Bin/../..";
-#use lib "$Bin/../extlib/lib/perl5";
 
 #### EXTERNAL MODULES
 use Term::ANSIColor qw(:constants);
 use Data::Dumper;
-use Getopt::Long;
 
 #### INTERNAL MODULES
 use Util::Timer;
@@ -86,18 +84,14 @@ use Conf::Yaml;
 use Flow::Main;
 
 #### GET log, printlog AND help
-my $log         =   2;
-my $printlog    =   5;
-my $help;
-GetOptions (
-    'log=i'      =>  \$log,
-    'printlog=i' =>  \$printlog,
-    'help'       =>  \$help
-) or die "No options specified. Try '--help'\n";
-usage() if defined $help;
+my $log = getArgument( \@ARGV, ["--log", "-l"] ) || 2;
+my $printlog = getArgument( \@ARGV, ["--printlog", "-p"] ) || 5;
+my $help = getArgument( \@ARGV, ["--help", "-h"] );
+usage() if $help;
+print "FINAL @ARGV: " . @ARGV . "\n";
 
 #### SET CONF FILE
-my $installdir  =   "$Bin/../../..";
+my $installdir  =   $ENV{'FLOW_HOME'};
 if ( not defined $installdir ) {
   print "Can't find FLOW_HOME environment variable. Exiting\n";
   exit;
@@ -153,33 +147,62 @@ $object->$method( @$arguments );
 #                                    SUBROUTINES
 #:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-sub checkRoot {
-    my $whoami = `whoami`;
-    $whoami =~ s/\s+$//;
-    #print "whoami: $whoami\n";
-    if ( not $whoami eq "root" and defined $username and $username ne $whoami ) {
-        print "You must be root to create projects/workflows in another user's name ($username)\n";
-        exit;
+sub getArgument {
+  my $args = shift;
+  my $names = shift;
+
+  for (my $i = 0; $i < @$args; $i++) {
+    my $argument = $$args[$i];
+
+    for (my $k = 0; $k < @$names; $k++) {
+      my $name = $$names[$k];
+      $name =~ s/\-/\-/g;
+    
+      if ( $$args[$i] eq  $name ) {
+        if ( $name =~ /^(--help|-h)$/ ) {
+          return 1;
+        }
+        elsif ( $i == @$args - 1 or $$args[$i + 1] !~ /^\d+$/ ) { 
+          print "Argument '$name' requires an integer value\n";
+          exit;
+        }
+        else {
+          my $value = $$args[$i + 1];   
+          splice( @$args, $i, 2);
+          return $value;
+        }
+      } 
     }
+  }
+}
+
+sub checkRoot {
+  my $whoami = `whoami`;
+  $whoami =~ s/\s+$//;
+  #print "whoami: $whoami\n";
+  if ( not $whoami eq "root" and defined $username and $username ne $whoami ) {
+    print "You must be root to create projects/workflows in another user's name ($username)\n";
+    exit;
+  }
 }
 
 sub getUsername {
-    my $argv    =   shift;
-    for ( my $i = 0; $i < @$argv; $i++ ) {
-        if ( $$argv[$i] eq "--username" and defined $$argv[$i + 1] ) {
-            return $$argv[$i + 1];
-        }
+  my $argv    =   shift;
+  for ( my $i = 0; $i < @$argv; $i++ ) {
+    if ( $$argv[$i] eq "--username" and defined $$argv[$i + 1] ) {
+        return $$argv[$i + 1];
     }
-    
-    return undef;    
+  }
+  
+  return undef;    
 }
 
 sub usage
 {
-    print GREEN;
-    print `perldoc $0`;
-    print RESET;
-    exit;
+  print GREEN;
+  print `perldoc $0`;
+  print RESET;
+  exit;
 }
 
 
