@@ -88,16 +88,10 @@ my $log = getArgument( \@ARGV, ["--log", "-l"] ) || 2;
 my $printlog = getArgument( \@ARGV, ["--printlog", "-p"] ) || 5;
 my $help = getArgument( \@ARGV, ["--help", "-h"] );
 usage() if $help;
-print "FINAL @ARGV: " . @ARGV . "\n";
 
 #### SET CONF FILE
-my $installdir  =   $ENV{'FLOW_HOME'};
-if ( not defined $installdir ) {
-  print "Can't find FLOW_HOME environment variable. Exiting\n";
-  exit;
-}
-my $configfile  =   "$installdir/conf/config.yml";
-my $logfile  =   "$installdir/log/flow.log";
+my $configfile  =   "$Bin/../../../conf/config.yml";
+my $logfile  =   "$Bin/../../../log/flow.log";
 my $conf = Conf::Yaml->new(
     memory      =>  1,
     inputfile	=>	$configfile,
