@@ -736,9 +736,26 @@ method addWorkflow ( $projectname, $wkfile ) {
   $workflow->workflownumber($workflownumber);
   $self->logDebug("workflow->workflownumber()", $workflow->workflownumber());
     
-	#### GET WORKFLOW NAME
-	my $workflowname = $workflow->workflowname();
+	#### GET WORKFLOW NAME FROM ARGUMENT
+	my $workflowname =  $workflow->workflowname();
+	if ( defined $options->{name} ) {
+		$workflowname = $options->{name};
+		$workflow->workflowname( $options->{name} );
+	}
 	$self->logDebug("workflowname", $workflowname);
+
+	if ( not defined $workflowname or $workflowname eq "" ) {
+		print "Workflow name is empty or not defined in file: '$wkfile'\n";
+		exit;
+	}
+
+	my $isworkflow = $self->table()->isWorkflow( $username, $projectname, $workflowname ) ;
+	$self->logDebug("isworkflow", $isworkflow);
+
+	if ( $isworkflow ) {
+		print "Workflow '$workflowname' already exists in project '$projectname'. Use '--workflowname newName' to add workflow\n";
+		exit; 
+	}
 
 	my $trash = "";
 	if ( not defined $workflowname ) {
