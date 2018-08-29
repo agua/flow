@@ -743,6 +743,13 @@ method addWorkflow ( $projectname, $wkfile ) {
 	my $owner       =   $username;
 	$self->logDebug("username", $username);
 
+	my $isproject = $self->table()->isProject( $username, $projectname );
+	$self->logDebug("isproject", $isproject);
+	if ( not $isproject ) {
+		print "No project '$projectname' in database. Create project using 'addproject <projectname>' subcommand.\n";
+		exit;
+	}
+
 	my $projecthash	=	$self->_getProjectHash($username, $projectname);
 	$self->logDebug("projecthash", $projecthash);
 	print "Can't find project: $projectname (username: $username)\n" and exit if not defined $projecthash;
@@ -838,10 +845,10 @@ AND workflowname='$workflowname'";
 	my $workflow = $self->table()->db()->query( $query );
 	$self->logDebug("workflow", $workflow);
 	if ( not defined $workflow ) {
-		print "No workflow in project '$projectname' with number '$workflowname'\n";
+		print "No workflow '$workflowname' in project '$projectname'\n";
 		exit;
 	}
-	my $workflownumber = $workflow->{workflownumber};
+	my $workflownumber = $self->table()->getWorkflowNumber( $username, $projectname, $workflowname );
 
 	$query       		=   qq{DELETE FROM workflow
 WHERE username='$username'
@@ -874,21 +881,19 @@ AND workflowname='$workflowname'
 	my $workflows = $self->table()->db()->queryhasharray("SELECT * FROM workflow
 WHERE username='$username'
 AND projectname='$projectname'
-AND workflowname='$workflowname'
 ORDER BY workflownumber");
 	$self->logDebug("workflows", $workflows);
 
 	for my $workflow ( @$workflows ) {
-		if ( $workflow->{number} > $workflownumber ) {
-			my $updatednumber = $workflow->{number} - 1;
+		if ( $workflow->{workflownumber} > $workflownumber ) {
+			my $updatednumber = $workflow->{workflownumber} - 1;
 
 			#### TABLE: workflow
 			$query = "UPDATE workflow
 SET workflownumber=$updatednumber
 WHERE username='$username'
 AND projectname='$projectname'
-AND workflowname='$workflowname'
-AND workflownumber=$workflownumber";
+AND workflownumber=$workflow->{workflownumber}";
 			$self->logDebug("query", $query);
 			$self->table()->db()->do( $query );
 
@@ -897,7 +902,7 @@ AND workflownumber=$workflownumber";
 SET workflownumber=$updatednumber
 WHERE username='$username'
 AND projectname='$projectname'
-AND workflownumber=$workflownumber";
+AND workflownumber=$workflow->{workflownumber}";
 			$self->logDebug("query", $query);
 			$self->table()->db()->do( $query );
 
@@ -905,7 +910,7 @@ AND workflownumber=$workflownumber";
 SET workflownumber=$updatednumber
 WHERE username='$username'
 AND projectname='$projectname'
-AND workflownumber=$workflownumber";
+AND workflownumber=$workflow->{workflownumber}";
 			$self->logDebug("query", $query);
 			$self->table()->db()->do( $query );
 		}
