@@ -693,6 +693,41 @@ ORDER BY workflownumber};
 }
 
 #### WORKFLOW
+method getOptions ( $argv, $arguments ) {
+	$self->logDebug("argv", $argv);
+	$self->logDebug("arguments", $arguments);
+
+	my $options = {};
+  for (my $i = 0; $i < @$argv; $i++) {
+    my $arg = $$argv[$i];
+    $self->logDebug("arg", $arg);
+
+    for (my $k = 0; $k < @$arguments; $k++) {
+      my $argument = $$arguments[$k][0];
+      my $regex = $$arguments[$k][1];
+      $self->logDebug("argument", $argument);
+      $self->logDebug("regex", $regex);
+    
+      if ( $arg eq $argument ) {
+        if ( $i == @$argv - 1 ) {
+        	print "Value missing for argument: $argument\n";
+        	exit;
+        }
+        elsif ( $$argv[$i + 1] !~ /$regex/ ) { 
+          print "Wrong format for argument '$argument'. Should be regex: $regex\n";
+          exit;
+        }
+        else {
+        	$argument =~ s/^\-+//;
+          $options->{$argument} = $$argv[$i + 1];
+        }
+      }
+    }
+  }
+
+  return $options;
+}
+
 method addWorkflow ( $projectname, $wkfile ) {
 	$self->logDebug("projectname", $projectname);
 	$self->logDebug("wkfile", $wkfile);
@@ -702,7 +737,6 @@ method addWorkflow ( $projectname, $wkfile ) {
 	];
 	my $options = $self->getOptions( \@ARGV, $formats );
 	$self->logDebug("options", $options);
-
 
 	#### SET USERNAME AND OWNER
 	my $username    =   $self->setUsername();
@@ -717,7 +751,7 @@ method addWorkflow ( $projectname, $wkfile ) {
   my $workflownumber  =   scalar(@$workflows) + 1;
   $self->logDebug("workflownumber", $workflownumber);
 
-	#### LOAD INTO DATABASE
+	#### GET PROJECT
 	$projecthash->{conf}		=	$self->conf();
 	$projecthash->{log}			=	$self->log();
 	$projecthash->{printlog}	=	$self->printlog();
@@ -760,7 +794,7 @@ method addWorkflow ( $projectname, $wkfile ) {
 		print "Workflow '$workflowname' already exists in project '$projectname'. Use '--workflowname newName' to add workflow\n";
 		exit; 
 	}
-
+	
 	my $trash = "";
 	if ( not defined $workflowname ) {
 		$self->logDebug("wkfile", $wkfile);
