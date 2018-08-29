@@ -989,7 +989,10 @@ method insertWorkflow ( $project, $wkfile, $workflownumber ) {
 	print "Inserted workflow '$workflowname' at number $workflownumber in project '$project' for user '$username'\n";
 }
 
-method runWorkflow ( $project, $workflownumber ) {
+method runWorkflow ( $projectname, $workflownumber ) {
+	$self->logDebug("projectname", $projectname);
+	$self->logDebug("workflownumber", $workflownumber);
+	
 	#### VERIFY INPUTS
 	print "Workflow number must be an integer (1, 2, ...)." and exit if $workflownumber !~ /^\d+$/;
 
@@ -998,7 +1001,7 @@ method runWorkflow ( $project, $workflownumber ) {
 	my $owner       =   $username;
 
 	#### GET WORKFLOW NAME
-	my $workflow = $self->table()->getWorkflowByNumber( $username, $project, $workflownumber );
+	my $workflow = $self->table()->getWorkflowByNumber( $username, $projectname, $workflownumber );
 	$self->logDebug("workflow", $workflow);
 
 	#### GET OPTS (E.G., WORKFLOW)
@@ -1008,12 +1011,12 @@ method runWorkflow ( $project, $workflownumber ) {
 	my $start				=		$self->start() || 1;
 	$self->logDebug("dryrun", $dryrun);
 	$self->logDebug("username", $username);
-	$self->logDebug("project", $project);
+	$self->logDebug("projectname", $projectname);
 	$self->logDebug("workflow", $workflow);
 	$self->logDebug("start", $start);
 	
 	#### GET WORKFLOW
-	my $workflowhash=	$self->getWorkflow($username, $project, $workflow);		
+	my $workflowhash=	$self->getWorkflow($username, $projectname, $workflow);		
 	print "Information for workflow not found: $workflow\n" and exit if not defined $workflowhash;
 
 	#### SET HASH
@@ -1022,7 +1025,7 @@ method runWorkflow ( $project, $workflownumber ) {
 	$self->logDebug("workflowhash", $workflowhash);
 	
 	#### GET SAMPLES
-	my $sampledata	=	$self->getSampleData($username, $project);
+	my $sampledata	=	$self->getSampleData($username, $projectname);
 	#$self->logDebug("Number of samples", scalar(@$sampledata));
 	print "Number of samples: ", scalar(@$sampledata), "\n" if defined $sampledata;
 
