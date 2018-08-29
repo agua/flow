@@ -227,7 +227,7 @@ WHERE username='$username'};
   
   print "Projects:\n";
   for my $project ( @$projects ) {
-  	print "$project->{name}\t$project->{description}\t$project->{notes}\n"
+  	print "$project->{projectname}\t$project->{description}\t$project->{notes}\n"
   }
 }
 
@@ -263,13 +263,20 @@ method desc ( $projectname ) {
 	print "username not defined\n" and exit if not defined $username;
 
 	my $data = {
-		username 		=> $username,
+		username    => $username,
 		projectname => $projectname
 	};
 
+	#### VERIFY PROJECT EXISTS
+	my $isproject = $self->table()->isProject( $username, $projectname );
+	$self->logDebug("isproject", $isproject);
+	if ( not $isproject ) {
+	    print "Project not found: $projectname\n";
+	    exit;
+	}
+
 	my $project = $self->table()->getProject( $username, $projectname );
 	$self->logDebug("project", $project);
-
 	my $workflows = $self->table()->getWorkflowsByProject( $project );
 	foreach my $workflow ( @$workflows ) {
 		my $apps = $self->table()->getStagesByWorkflow( $workflow );
