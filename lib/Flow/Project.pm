@@ -750,6 +750,7 @@ method loadFromDatabase ($username, $projectname) {
   my $data    =   $self->table()->db()->queryhash("SELECT * FROM project 
 WHERE username='$username'
 AND projectname='$projectname'");
+  $self->logDebug("data", $data);
   my $workflows = $self->table()->getWorkflowsByProject($data);
   $self->logDebug("no. workflows", scalar(@$workflows));
   #$self->logDebug("workflows", $workflows);
