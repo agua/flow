@@ -992,7 +992,7 @@ method insertWorkflow ( $project, $wkfile, $workflownumber ) {
 method runWorkflow ( $projectname, $workflownumber ) {
 	$self->logDebug("projectname", $projectname);
 	$self->logDebug("workflownumber", $workflownumber);
-	
+
 	#### VERIFY INPUTS
 	print "Workflow number must be an integer (1, 2, ...)." and exit if $workflownumber !~ /^\d+$/;
 
@@ -1123,7 +1123,8 @@ method getWorkflow ($username, $projectname, $workflowname) {
 	$self->logDebug("workflowname", $workflowname);
 
 	my $query = qq{SELECT * FROM workflow 
-WHERE projectname='$projectname' 
+WHERE username='$username' 
+AND projectname='$projectname' 
 AND workflowname='$workflowname'
 };
 	return   $self->table()->db()->queryhash( $query );
@@ -1426,7 +1427,7 @@ method _showStage ($workflowhash, $samplehash, $stagenumber) {
   print "\n$command\n\n";
 }
 
-method runStage ( $project, $workflow, $stagenumber ) {
+method runStage ( $projectname, $workflow, $stagenumber ) {
 	$self->logDebug("");
 
 	#### SET USERNAME AND OWNER
@@ -1434,13 +1435,13 @@ method runStage ( $project, $workflow, $stagenumber ) {
 	my $owner       =   $username;
 
 	$self->logDebug("username", $username);
-	$self->logDebug("project", $project);
+	$self->logDebug("projectname", $projectname);
 	$self->logDebug("workflow", $workflow);
 	$self->logDebug("stagenumber", $stagenumber);
 
 	#### VERIFY INPUTS
 	print "username not defined\n" and exit if not defined $username;
-	print "project not defined\n" and exit if not defined $project;
+	print "projectname not defined\n" and exit if not defined $projectname;
 	print "workflow not defined\n" and exit if not defined $workflow;
 	print "stagenumber not defined\n" and exit if not defined $stagenumber;
 	
@@ -1460,8 +1461,12 @@ method runStage ( $project, $workflow, $stagenumber ) {
 	$self->logDebug("samplehash", $samplehash);
 
 	#### GET WORKFLOW
-	my $workflowhash=	$self->getWorkflow($username, $project, $workflow);
+	my $workflowhash=	$self->getWorkflow($username, $projectname, $workflow);
 	$self->logDebug("workflowhash", $workflowhash);
+	if ( not %$workflowhash ) {
+		print "No workflows in project '$projectname'\n";
+		exit;
+	}
 	
 	#### SET DRY RUN
 	$workflowhash->{dryrun}		=	$dryrun;
@@ -1469,7 +1474,7 @@ method runStage ( $project, $workflow, $stagenumber ) {
 	print "Information for workflow not found: $workflow\n" and exit if not defined $workflowhash;
 
 	#### GET SAMPLES
-	my $sampledata	=	$self->getSampleData($username, $project);
+	my $sampledata	=	$self->getSampleData($username, $projectname);
 	$self->logDebug("Count samplesdata", scalar(@$sampledata)) if defined $sampledata;
 	$self->logDebug("samplesdata[0]", $$sampledata[0]) if defined $sampledata and scalar(@$sampledata) > 0;
 	#print "Number of samples: ", scalar(@$sampledata), "\n" if defined $sampledata;
