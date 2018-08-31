@@ -2,3 +2,4 @@
 log
 !log/.dummy
 db/agua.sqlite
+util/.gitmodules
