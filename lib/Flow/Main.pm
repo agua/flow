@@ -1479,9 +1479,10 @@ method runStage ( $projectname, $workflow, $stagenumber ) {
 	$self->logDebug("samplesdata[0]", $$sampledata[0]) if defined $sampledata and scalar(@$sampledata) > 0;
 	#print "Number of samples: ", scalar(@$sampledata), "\n" if defined $sampledata;
 
+	my $success = undef;
 	if ( defined $samplestring ) {
 		my $samplehash		=	$self->sampleStringToHash($samplestring);
-        my $success	=	$self->_runStage($workflowhash, $samplehash, $stagenumber);
+		$success	=	$self->_runStage($workflowhash, $samplehash, $stagenumber);
 		$self->logDebug("success", $success);
 	}
 	elsif ( defined $sampledata ) {
@@ -1491,19 +1492,33 @@ method runStage ( $projectname, $workflow, $stagenumber ) {
         my $overridehash		=	undef;
         $overridehash			=	$self->sampleStringToHash($override) if defined $override;
         $self->logDebug("overridehash", $overridehash);
-        
+       
         foreach my $samplehash ( @$sampledata ) {
             $samplehash = $self->overrideHash($overridehash, $samplehash);
             $self->logDebug("Running stage with samplehash", $samplehash);
             print "Running stage $stagenumber using sample: ", $samplehash->{sample}, "\n";
-            my $success	=	$self->_runStage($workflowhash, $samplehash, $stagenumber);
-            $self->logDebug("success", $success);
+            my $stagesuccess	=	$self->_runStage($workflowhash, $samplehash, $stagenumber);
+	    $self->logDebug("stagesuccess", $stagesuccess);
+            if ( not defined $stagesuccess ) {
+		$success = 0;
+	    }
+	    else {
+		if ( not defined $success ) {
+		    $success = $stagesuccess;
+		}
+		elsif ( $stagesuccess = 0 ) {
+		    $success = 0;
+		}
+	    }
+	    $self->logDebug("success", $success);
         }
 	}
 	else {
-        my $success	=	$self->_runStage($workflowhash, $samplehash, $stagenumber);
-        $self->logDebug("success", $success);
+	    $success	=	$self->_runStage($workflowhash, $samplehash, $stagenumber);
+	    $self->logDebug("success", $success);
 	}
+	
+	return $success;
 }
 
 method _runStage ($workflowhash, $samplehash, $stagenumber) {
