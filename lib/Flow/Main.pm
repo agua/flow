@@ -35,6 +35,8 @@ has 'indent'    => ( isa => 'Int', is => 'ro', default => 4);
 has 'epochstarted'	=> ( isa => 'Int|Undef', is => 'rw', default => undef );
 has 'epochstopped'  => ( isa => 'Int|Undef', is => 'rw', default => undef );
 has 'epochduration'	=> ( isa => 'Int|Undef', is => 'rw', default => undef );
+has 'start'		=> ( isa => 'Int', is => 'rw', required => 0 );
+has 'stop'		=> ( isa => 'Int', is => 'rw', required => 0 );
 
 #### Maybe
 has 'epochqueued'	=> ( isa => 'Maybe', is => 'rw', default => undef );
@@ -42,10 +44,11 @@ has 'force'     => ( isa => 'Maybe', is => 'rw', required => 0 );
 
 #### Bool
 has 'dryrun'	=> ( isa => 'Bool', is => 'rw', default 	=> 	0 	);
-has 'force'	=> ( isa => 'Bool', is => 'rw', default 	=> 	0 	);
+has 'force'		=> ( isa => 'Bool', is => 'rw', default 	=> 	0 	);
 has 'help'		=> ( isa => 'Bool', is => 'rw', required => 0 );
 
 #### Str
+has 'stages'	=> ( isa => 'Str', is => 'rw', required => 0 );
 has 'logtype'	=> ( isa => 'Str|Undef', is => 'rw', default	=>	"cli"	);
 has 'logfile'	=> ( isa => 'Str|Undef', is => 'rw', required	=>	0	);
 
@@ -57,13 +60,12 @@ has 'projectfile'=> ( isa => 'Str|Undef', is => 'rw', required => 0, default => 
 has 'logfile'   => ( isa => 'Str|Undef', is => 'rw', required => 0, default => '' );
 has 'outputfile'=> ( isa => 'Str|Undef', is => 'rw', required => 0, default => '' );
 has 'outputdir'	=> ( isa => 'Str|Undef', is => 'rw', required => 0, default => '' );
-has 'dbfile'    => ( isa => 'Str|Undef', is => 'rw', required => 0 );
-has 'dbtype'    => ( isa => 'Str|Undef', is => 'rw', required => 0 );
-has 'database'  => ( isa => 'Str|Undef', is => 'rw', required => 0 );
-has 'user'      => ( isa => 'Str|Undef', is => 'rw', required => 0 );
-has 'password'  => ( isa => 'Str|Undef', is => 'rw', required => 0 );
-has 'start'		=> ( isa => 'Str', is => 'rw', required => 0 );
-has 'stop'		=> ( isa => 'Str', is => 'rw', required => 0 );
+# has 'dbfile'    => ( isa => 'Str|Undef', is => 'rw', required => 0 );
+# has 'dbtype'    => ( isa => 'Str|Undef', is => 'rw', required => 0 );
+# has 'database'  => ( isa => 'Str|Undef', is => 'rw', required => 0 );
+# has 'user'      => ( isa => 'Str|Undef', is => 'rw', required => 0 );
+# has 'password'  => ( isa => 'Str|Undef', is => 'rw', required => 0 );
+has 'outputdir'	=> ( isa => 'Str|Undef', is => 'rw', required => 0, default => '' );
 
 #### STORED LOGISTICS VARIABLES
 has 'owner'	    => ( isa => 'Str|Undef', is => 'rw', required => 0, default => undef );
@@ -99,7 +101,7 @@ has 'value'	    => ( isa => 'Str|Undef', is => 'rw', required => 0 );
 
 #### Obj
 has 'workflows'	 => ( isa => 'ArrayRef[Flow::Workflow]', is => 'rw', default => sub { [] } );
-has 'fields'    => ( isa => 'ArrayRef[Str|Undef]', is => 'rw', default => sub { ['username', 'database', 'project', 'number', 'workflow', 'owner', 'description', 'notes', 'outputdir', 'field', 'value', 'projfile', 'wkfile', 'outputfile', 'cmdfile', 'start', 'stop', 'ordinal', 'from', 'to', 'status', 'started', 'stopped', 'duration', 'epochqueued', 'epochstarted', 'epochstopped', 'epochduration', 'log', 'printlog', 'scheduler', 'samplestring', 'maxjobs', 'stagenumber', 'format', 'dryrun', 'override', 'force' ] } );
+has 'fields'    => ( isa => 'ArrayRef[Str|Undef]', is => 'rw', default => sub { ['username', 'database', 'project', 'number', 'workflow', 'owner', 'description', 'notes', 'outputdir', 'field', 'value', 'projfile', 'wkfile', 'outputfile', 'cmdfile', 'start', 'stop', 'stages', 'ordinal', 'from', 'to', 'status', 'started', 'stopped', 'duration', 'epochqueued', 'epochstarted', 'epochstopped', 'epochduration', 'log', 'printlog', 'scheduler', 'samplestring', 'maxjobs', 'stagenumber', 'format', 'dryrun', 'override', 'force' ] } );
 has 'logfh'     => ( isa => 'FileHandle', is => 'rw', required => 0 );
 
 has 'conf' 		=> (
@@ -526,9 +528,9 @@ method runProjectUsage {
 projectname   : Name of exiting project (e.g., 'flow addproject myproject')
 
 Options:
---start       : Start running from this workflow number
---stop        : Stop running at this workflow number
-
+--start  (Int)     : Start running from this workflow number
+--stop   (Int)     : Stop running at this workflow number
+--stages (Int-Int) : Run specific stages (e.g., 7-10)  
 };
 
 }
@@ -568,9 +570,25 @@ method runProject ( $projectname ) {
 		exit;
 	}
 	my $dryrun			=		$self->dryrun();
+	my $stages			=		$self->stages();
+	my $stagestart = 1;
+	my $stagestop = undef;
+	if ( defined $stages ) {
+		if ( $stages !~ /^(\d+)-(\d+)$/ ) {
+			print "Stages ($stages) should be hyphen-separated integers (e.g., 1-3)\n\n";
+			$self->runProjectUsage();
+			exit;
+		}
+		else {
+			($stagestart, $stagestop) = $stages =~ /^(\d+)-(\d+)$/;
+		}		
+	}
+
 	$self->logDebug("start", $start);
 	$self->logDebug("stop", $stop);
 	$self->logDebug("dryrun", $dryrun);
+	$self->logDebug("stagestart", $stagestart);
+	$self->logDebug("stagestop", $stagestop);
 
 	my $samplehash			=	$self->getSampleHash($username, $projectname);
 	$self->logDebug("samplehash", $samplehash);
@@ -583,12 +601,12 @@ method runProject ( $projectname ) {
 		$self->logDebug( "samplehash defined. Doing _runWorkflow");
 
 		for ( my $i = $start - 1; $i < $stop - 1; $i++ ) {
-			my $workflowhash = $$workflowhashes[$i];	
 			$self->logDebug( "samplehash defined. Doing _runWorkflow " . $i + 1 );
-
-			#### SET DRY RUN
+			my $workflowhash = $$workflowhashes[$i];	
 			$workflowhash->{dryrun}		=	$dryrun;
-			
+			$workflowhash->{start} = $stagestart;
+			$workflowhash->{stop} = $stagestop;
+
 			$self->_runWorkflow($workflowhash, $samplehash);
 		}
 	}
@@ -604,6 +622,9 @@ method runProject ( $projectname ) {
 
 					for ( my $i = $start - 1; $i < $stop - 1; $i++ ) {
 						my $workflowhash = $$workflowhashes[$i];	
+						$workflowhash->{dryrun}		=	$dryrun;
+						$workflowhash->{start} = $stagestart;
+						$workflowhash->{stop} = $stagestop;
 
 						#### PRINT PROGRESS
 						print "Doing workflow " . $i + 1 . ": " . $workflowhash->{workflowname} . "\n";
@@ -619,8 +640,11 @@ method runProject ( $projectname ) {
 			$self->logDebug("maxjobs defined. Doing _runSampleWorkflow");
 
 			for ( my $i = $start - 1; $i < $stop - 1; $i++ ) {
-				my $workflowhash = $$workflowhashes[$i];	
 				$self->logDebug( "DOING _runSampleWorkflow " . $i + 1 );
+				my $workflowhash = $$workflowhashes[$i];	
+				$workflowhash->{dryrun}		=	$dryrun;
+				$workflowhash->{start} = $stagestart;
+				$workflowhash->{stop} = $stagestop;
 				
 				my $success	=	$self->_runSampleWorkflow($workflowhash, $sampledata);
 				$self->logDebug("success", $success);
@@ -630,12 +654,12 @@ method runProject ( $projectname ) {
 	else {
 		print "Running workflows $start-$stop for project: $projectname\n";
 
-$self->logDebug("DEBUG EXIT");
-exit;
-
-
-		for ( my $i = $start - 1; $i < $stop - 1; $i++ ) {
+		for ( my $i = $start - 1; $i < $stop; $i++ ) {
 			my $workflowhash = $$workflowhashes[$i];	
+			$workflowhash->{dryrun}		=	$dryrun;
+			$workflowhash->{start} = $stagestart;
+			$workflowhash->{stop} = $stagestop;
+
 			$self->_runWorkflow($workflowhash, undef);
 		}
 		#print "Completed workflow $workflow\n";
