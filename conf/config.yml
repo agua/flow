@@ -5,7 +5,7 @@ core:
   AGUAUSER: agua
   AUTHOR: syoung
   EXECUTION_TEMPDIR: /tmp
-  INSTALLDIR: /home/Stuart.Young/flow
+  INSTALLDIR: /home/stuart.young/flow
   TEMPDIR: /tmp
   USERDIR: /home
 cluster:
