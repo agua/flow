@@ -520,22 +520,27 @@ AND projectname='$project'
 	print "Deleted project '$project' for user '$username'\n";
 }
 
+method runProjectUsage {
+	print qq{USAGE: flow runproject <projectname> [options]
+
+projectname   : Name of exiting project (e.g., 'flow addproject myproject')
+
+Options:
+--start       : Start running from this workflow number
+--stop        : Stop running at this workflow number
+
+};
+
+}
 method runProject ( $projectname ) {
 	$self->logDebug("projectname", $projectname);
 	
-	#### READ INPUTFILE
-	#$self->read();
-
 	#### GET OPTS (E.G., WORKFLOW)
 	$self->_getopts();
 	
 	#### SET USERNAME AND OWNER
 	my $username    =   $self->setUsername();
 	my $owner       =   $username;
-	my $start				=		$self->start();
-	my $dryrun			=		$self->dryrun();
-	$self->logDebug("start", $start);
-	$self->logDebug("dryrun", $dryrun);
 
 	#### VERIFY INPUTS
 	print "username not defined\n" and exit if not defined $username;
@@ -544,49 +549,65 @@ method runProject ( $projectname ) {
 	my $workflowhashes		=	$self->getWorkflows($username, $projectname);
 	$self->logDebug("workflowhashes", $workflowhashes);
 
+	my $start				=		1;
+	if ( defined $self->start() ) {
+		$start = $self->start();
+	}
+	if ( $start < 1 ) {
+		print "Start number ($start) is less than 1\n";
+		exit;
+	}
+	if ( $start > scalar(@$workflowhashes) ) {
+		print "Start number ($start) is greater than the number of workflows: " . scalar(@$workflowhashes) . "\n";
+		exit;
+	}
+
+	my $stop				=		$self->stop() || scalar(@$workflowhashes);
+	if ( $stop > scalar(@$workflowhashes) ) {
+		print "Stop number ($stop) is greater than the number of workflows: " . scalar(@$workflowhashes) . "\n";
+		exit;
+	}
+	my $dryrun			=		$self->dryrun();
+	$self->logDebug("start", $start);
+	$self->logDebug("stop", $stop);
+	$self->logDebug("dryrun", $dryrun);
+
 	my $samplehash			=	$self->getSampleHash($username, $projectname);
 	$self->logDebug("samplehash", $samplehash);
 
 	#### GET SAMPLES
 	my $sampledata	=	$self->getSampleData($username, $projectname);
 	print "*** NUMBER SAMPLES ***", scalar(@$sampledata), "\n" if defined $sampledata;
-	print "**** NO SAMPLES ****\n" if not defined $sampledata;
 
 	if ( defined $samplehash ) {
-		$self->logDebug("samplehash defined. Doing _runWorkflow");
-		my $counter = 0;
-		foreach my $workflowhash ( @$workflowhashes ) {
-			$self->logDebug("samplehash defined. Doing _runWorkflow $counter");
+		$self->logDebug( "samplehash defined. Doing _runWorkflow");
+
+		for ( my $i = $start - 1; $i < $stop - 1; $i++ ) {
+			my $workflowhash = $$workflowhashes[$i];	
+			$self->logDebug( "samplehash defined. Doing _runWorkflow " . $i + 1 );
 
 			#### SET DRY RUN
 			$workflowhash->{dryrun}		=	$dryrun;
-			
-			$counter++;
-			if ( $start and $counter < $start ) {
-				next;
-			}
 			
 			$self->_runWorkflow($workflowhash, $samplehash);
 		}
 	}
 	elsif ( defined $sampledata ) {
 		$self->logDebug("sampledata defined. Doing _runWorkflow");
-		my $maxjobs  =	2;
+		my $maxjobs  =	$self->maxjobs();
 		if ( not defined $maxjobs ) {
 			$self->logDebug("maxjobs not defined. Doing _runWorkflow loop");
 		
 			foreach my $samplehash ( @$sampledata ) {
 				$self->logDebug("Running workflow with samplehash", $samplehash);
-				print "Doing _runWorkflow using sample: ", $samplehash->{sample}, "\n";
-					my $counter = 0;
-					foreach my $workflowhash ( @$workflowhashes ) {
-						print "Doing workflow $counter: ", $workflowhash->{workflow}, "\n";
-						$counter++;
-						if ( $start and $counter < $start ) {
-							next;
-						}
+				print "Doing _runWorkflow using sample: " . $samplehash->{samplename} . "\n";
 
-						$self->_runWorkflow($workflowhash, $samplehash);
+					for ( my $i = $start - 1; $i < $stop - 1; $i++ ) {
+						my $workflowhash = $$workflowhashes[$i];	
+
+						#### PRINT PROGRESS
+						print "Doing workflow " . $i + 1 . ": " . $workflowhash->{workflowname} . "\n";
+
 						my $success	=	$self->_runWorkflow($workflowhash, $samplehash);
 						$self->logDebug("success", $success);
 						
@@ -597,23 +618,24 @@ method runProject ( $projectname ) {
 		else {
 			$self->logDebug("maxjobs defined. Doing _runSampleWorkflow");
 
-			my $counter = 0;
-			foreach my $workflowhash ( @$workflowhashes ) {
-				$self->logDebug("DOING _runSampleWorkflow $counter");
+			for ( my $i = $start - 1; $i < $stop - 1; $i++ ) {
+				my $workflowhash = $$workflowhashes[$i];	
+				$self->logDebug( "DOING _runSampleWorkflow " . $i + 1 );
 				
-				$counter++;
-				if ( $start and $counter < $start ) {
-					next;
-				}
-
 				my $success	=	$self->_runSampleWorkflow($workflowhash, $sampledata);
 				$self->logDebug("success", $success);
 			}
 		}
 	}
 	else {
-		print "Running workflows for project: $projectname\n";
-		foreach my $workflowhash ( @$workflowhashes ) {
+		print "Running workflows $start-$stop for project: $projectname\n";
+
+$self->logDebug("DEBUG EXIT");
+exit;
+
+
+		for ( my $i = $start - 1; $i < $stop - 1; $i++ ) {
+			my $workflowhash = $$workflowhashes[$i];	
 			$self->_runWorkflow($workflowhash, undef);
 		}
 		#print "Completed workflow $workflow\n";
@@ -728,9 +750,24 @@ method getOptions ( $argv, $arguments ) {
   return $options;
 }
 
-method addWorkflow ( $projectname, $wkfile ) {
+method addWorkflowUsage {
+	print qq{USAGE: flow addworkflow <projectname> <workflowfile> [options]
+
+projectname   : Name of exiting project (e.g., 'flow addproject myproject')
+workflowfile  : Relative or absolute path to YAML-format *.wrk workflow file
+};
+
+}
+
+method addWorkflow ( $projectname = undef , $wkfile = undef ) {
 	$self->logDebug("projectname", $projectname);
 	$self->logDebug("wkfile", $wkfile);
+	if ( not defined $projectname 
+		or not defined $wkfile ) {
+		print "Missing arguments.\n\n";
+		$self->addWorkflowUsage();
+		exit;
+	}
 
 	my $formats = [
 		[ "--name", "\\w.*" ]
@@ -741,6 +778,7 @@ method addWorkflow ( $projectname, $wkfile ) {
 	#### SET USERNAME AND OWNER
 	my $username    =   $self->setUsername();
 	my $owner       =   $username;
+	my $format      =		$self->format();
 	$self->logDebug("username", $username);
 
 	my $isproject = $self->table()->isProject( $username, $projectname );
@@ -919,11 +957,27 @@ AND workflownumber=$workflow->{workflownumber}";
 	print "Deleted workflow '$workflowname' in project '$projectname' for user '$username'\n";
 }
 
-method insertWorkflow ( $project, $wkfile, $workflownumber ) {
-	$self->logDebug("project", $project);
+method insertWorkflowUsage {
+	print qq{USAGE: flow insertworkflow <projectname> <workflowfile> <workflownumber> [options]
+
+projectname   : Name of exiting project (e.g., 'flow addproject myproject')
+workflowfile  : Relative or absolute path to YAML-format *.wrk workflow file
+};
+
+}
+
+method insertWorkflow ( $projectname = undef, $wkfile = undef, $workflownumber =undef ) {
+	$self->logDebug("projectname", $projectname);
 	$self->logDebug("wkfile", $wkfile);
 	$self->logDebug("workflownumber", $workflownumber);
-  $self->logDebug("self->table()->db()", $self->table()->db());        
+
+	if ( not defined $projectname 
+		or not defined $wkfile
+		or not defined $workflownumber ) {
+		print "Missing arguments.\n\n";
+		$self->insertWorkflowUsage();
+		exit;
+	}
 
 	#### GET OPTS (E.G., WORKFLOW)
 	$self->_getopts();
@@ -933,11 +987,11 @@ method insertWorkflow ( $project, $wkfile, $workflownumber ) {
 	my $owner       =   $username;
 	$self->logDebug("username", $username);
 
-	my $projecthash	=	$self->_getProjectHash($username, $project);
+	my $projecthash	=	$self->_getProjectHash($username, $projectname);
 	$self->logDebug("projecthash", $projecthash);
-	print "Can't find project: $project (username: $username)\n" and exit if not defined $projecthash;
+	print "Can't find project: $projectname (username: $username)\n" and exit if not defined $projecthash;
 	
-  my $workflows   =   $self->getProjectWorkflows($username, $project);
+  my $workflows   =   $self->getProjectWorkflows($username, $projectname);
 
 	#### CREATE PROJECT OBJECT
 	$projecthash->{conf}			=	$self->conf();
@@ -945,13 +999,13 @@ method insertWorkflow ( $project, $wkfile, $workflownumber ) {
 	$projecthash->{printlog}	=	$self->printlog();
 	$projecthash->{db}				=	$self->table()->db();
 	my $projectobject					=	Flow::Project->new($projecthash);
-  $projectobject->loadFromDatabase($username, $project);
+  $projectobject->loadFromDatabase($username, $projectname);
   $self->logDebug("COMPLETED CREATE projectobject");
 	$self->logDebug("BEFORE Flow::Workflow->new    self->table()->db()", $self->table()->db());        
 
 	#### LOAD WORKFLOW TO BE INSERTED
 	my $workflow = Flow::Workflow->new(
-		project     =>  $project,
+		projectname =>  $projectname,
 		username    =>  $self->username(),
     number      =>  $workflownumber,
   	inputfile   =>  $wkfile,
@@ -962,17 +1016,17 @@ method insertWorkflow ( $project, $wkfile, $workflownumber ) {
 	);
 	$workflow->_getopts();
 	$workflow->_loadFile();
-  $workflow->number($workflownumber);
-  $self->logDebug("workflow->number()", $workflow->number());
+  $workflow->workflownumber($workflownumber);
+  $self->logDebug("workflow->workflownumber()", $workflow->workflownumber());
     
 	#### GET WORKFLOW NAME
 	my $workflowname = $workflow->getNameFromFile( $wkfile );
 	$workflow->name($workflowname);
 	$self->logDebug("workflowname", $workflowname);
 	
-	# #### ADD WORKFLOW OBJECT TO PROJECT OBJECT
- #  $self->logDebug("SENDING workflow->number()", $workflow->number());
-	# $projectobject->_saveWorkflow($workflow);
+	#### ADD WORKFLOW OBJECT TO PROJECT OBJECT
+  $self->logDebug("SENDING workflow->workflownumber()", $workflow->workflownumber());
+	$projectobject->_saveWorkflow($workflow);
 
 	#### SAVE TO project TABLE
 	$self->projectToDatabase($username, $projectobject);
@@ -986,13 +1040,13 @@ method insertWorkflow ( $project, $wkfile, $workflownumber ) {
 		$workflowobject->save();
 	}
 
-	print "Inserted workflow '$workflowname' at number $workflownumber in project '$project' for user '$username'\n";
+	print "Inserted workflow '$workflowname' at number $workflownumber in project '$projectname' for user '$username'\n";
 }
 
 method runWorkflow ( $projectname, $workflownumber ) {
 	$self->logDebug("projectname", $projectname);
 	$self->logDebug("workflownumber", $workflownumber);
-
+	
 	#### VERIFY INPUTS
 	print "Workflow number must be an integer (1, 2, ...)." and exit if $workflownumber !~ /^\d+$/;
 
@@ -1123,8 +1177,7 @@ method getWorkflow ($username, $projectname, $workflowname) {
 	$self->logDebug("workflowname", $workflowname);
 
 	my $query = qq{SELECT * FROM workflow 
-WHERE username='$username' 
-AND projectname='$projectname' 
+WHERE projectname='$projectname' 
 AND workflowname='$workflowname'
 };
 	return   $self->table()->db()->queryhash( $query );
@@ -1427,7 +1480,7 @@ method _showStage ($workflowhash, $samplehash, $stagenumber) {
   print "\n$command\n\n";
 }
 
-method runStage ( $projectname, $workflow, $stagenumber ) {
+method runStage ( $project, $workflow, $stagenumber ) {
 	$self->logDebug("");
 
 	#### SET USERNAME AND OWNER
@@ -1435,13 +1488,13 @@ method runStage ( $projectname, $workflow, $stagenumber ) {
 	my $owner       =   $username;
 
 	$self->logDebug("username", $username);
-	$self->logDebug("projectname", $projectname);
+	$self->logDebug("project", $project);
 	$self->logDebug("workflow", $workflow);
 	$self->logDebug("stagenumber", $stagenumber);
 
 	#### VERIFY INPUTS
 	print "username not defined\n" and exit if not defined $username;
-	print "projectname not defined\n" and exit if not defined $projectname;
+	print "project not defined\n" and exit if not defined $project;
 	print "workflow not defined\n" and exit if not defined $workflow;
 	print "stagenumber not defined\n" and exit if not defined $stagenumber;
 	
@@ -1461,12 +1514,8 @@ method runStage ( $projectname, $workflow, $stagenumber ) {
 	$self->logDebug("samplehash", $samplehash);
 
 	#### GET WORKFLOW
-	my $workflowhash=	$self->getWorkflow($username, $projectname, $workflow);
+	my $workflowhash=	$self->getWorkflow($username, $project, $workflow);
 	$self->logDebug("workflowhash", $workflowhash);
-	if ( not %$workflowhash ) {
-		print "No workflows in project '$projectname'\n";
-		exit;
-	}
 	
 	#### SET DRY RUN
 	$workflowhash->{dryrun}		=	$dryrun;
@@ -1474,15 +1523,14 @@ method runStage ( $projectname, $workflow, $stagenumber ) {
 	print "Information for workflow not found: $workflow\n" and exit if not defined $workflowhash;
 
 	#### GET SAMPLES
-	my $sampledata	=	$self->getSampleData($username, $projectname);
+	my $sampledata	=	$self->getSampleData($username, $project);
 	$self->logDebug("Count samplesdata", scalar(@$sampledata)) if defined $sampledata;
 	$self->logDebug("samplesdata[0]", $$sampledata[0]) if defined $sampledata and scalar(@$sampledata) > 0;
 	#print "Number of samples: ", scalar(@$sampledata), "\n" if defined $sampledata;
 
-	my $success = undef;
 	if ( defined $samplestring ) {
 		my $samplehash		=	$self->sampleStringToHash($samplestring);
-		$success	=	$self->_runStage($workflowhash, $samplehash, $stagenumber);
+        my $success	=	$self->_runStage($workflowhash, $samplehash, $stagenumber);
 		$self->logDebug("success", $success);
 	}
 	elsif ( defined $sampledata ) {
@@ -1492,33 +1540,19 @@ method runStage ( $projectname, $workflow, $stagenumber ) {
         my $overridehash		=	undef;
         $overridehash			=	$self->sampleStringToHash($override) if defined $override;
         $self->logDebug("overridehash", $overridehash);
-       
+        
         foreach my $samplehash ( @$sampledata ) {
             $samplehash = $self->overrideHash($overridehash, $samplehash);
             $self->logDebug("Running stage with samplehash", $samplehash);
             print "Running stage $stagenumber using sample: ", $samplehash->{sample}, "\n";
-            my $stagesuccess	=	$self->_runStage($workflowhash, $samplehash, $stagenumber);
-	    $self->logDebug("stagesuccess", $stagesuccess);
-            if ( not defined $stagesuccess ) {
-		$success = 0;
-	    }
-	    else {
-		if ( not defined $success ) {
-		    $success = $stagesuccess;
-		}
-		elsif ( $stagesuccess = 0 ) {
-		    $success = 0;
-		}
-	    }
-	    $self->logDebug("success", $success);
+            my $success	=	$self->_runStage($workflowhash, $samplehash, $stagenumber);
+            $self->logDebug("success", $success);
         }
 	}
 	else {
-	    $success	=	$self->_runStage($workflowhash, $samplehash, $stagenumber);
-	    $self->logDebug("success", $success);
+        my $success	=	$self->_runStage($workflowhash, $samplehash, $stagenumber);
+        $self->logDebug("success", $success);
 	}
-	
-	return $success;
 }
 
 method _runStage ($workflowhash, $samplehash, $stagenumber) {
