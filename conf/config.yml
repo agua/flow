@@ -3,19 +3,19 @@ core:
   ADMINUSER: admin
   AGUADIR: agua
   AGUAUSER: agua
-  AUTHOR: syoung
   EXECUTION_TEMPDIR: /tmp
-  INSTALLDIR: /home/stuart.young/flow
+  INSTALLDIR: /f
   TEMPDIR: /tmp
   USERDIR: /home
-cluster:
-  CANCELJOB: '/opt/sge6/bin/lx24-amd64/qdel -j'
-  QSTAT: /opt/sge6/bin/lx24-amd64/qstat
-  QSUB: /opt/sge6/bin/lx24-amd64/qsub
-  SGEBIN: /opt/sge6/bin/lx24-amd64
-  SGEEXECDPORT: '63232'
-  SGEQMASTERPORT: '63231'
-  SGEROOT: /opt/sge6
+  SCHEDULER: sge
+scheduler:
+  CANCELJOB: '/nfs/univa/bin/lx24-amd64/qdel -j'
+  QSTAT: /nfs/univa/bin/lx24-amd64/qstat
+  QSUB: /nfs/univa/bin/lx24-amd64/qsub
+  SGEBIN: /nfs/univa/bin/lx24-amd64
+  SGEEXECDPORT: '6445'
+  SGEQMASTERPORT: '6444'
+  SGEROOT: /nfs/univa
   SLEEP: '5'
 database:
   DATABASE: agua

@@ -11,10 +11,9 @@ class Flow::Main with (Util::Logger,
 
 #### EXTERNAL
 use File::Path;
-use JSON;
 use Getopt::Simple;
-# use TryCatch;
-use Data::Dumper;
+# use Data::Dumper;
+use JSON;
 use YAML;
 
 #### INTERNAL
@@ -22,7 +21,6 @@ use Flow::Project;
 use Flow::Workflow;
 use Flow::App;
 use Flow::Parameter;
-use DBase::Factory;
 use Table::Main;
 
 #### Int
@@ -60,11 +58,6 @@ has 'projectfile'=> ( isa => 'Str|Undef', is => 'rw', required => 0, default => 
 has 'logfile'   => ( isa => 'Str|Undef', is => 'rw', required => 0, default => '' );
 has 'outputfile'=> ( isa => 'Str|Undef', is => 'rw', required => 0, default => '' );
 has 'outputdir'	=> ( isa => 'Str|Undef', is => 'rw', required => 0, default => '' );
-# has 'dbfile'    => ( isa => 'Str|Undef', is => 'rw', required => 0 );
-# has 'dbtype'    => ( isa => 'Str|Undef', is => 'rw', required => 0 );
-# has 'database'  => ( isa => 'Str|Undef', is => 'rw', required => 0 );
-# has 'user'      => ( isa => 'Str|Undef', is => 'rw', required => 0 );
-# has 'password'  => ( isa => 'Str|Undef', is => 'rw', required => 0 );
 has 'outputdir'	=> ( isa => 'Str|Undef', is => 'rw', required => 0, default => '' );
 
 #### STORED LOGISTICS VARIABLES
@@ -1067,35 +1060,27 @@ method insertWorkflow ( $projectname = undef, $wkfile = undef, $workflownumber =
 	print "Inserted workflow '$workflowname' at number $workflownumber in project '$projectname' for user '$username'\n";
 }
 
-method runWorkflow ( $projectname, $workflownumber ) {
+method runWorkflow ( $projectname, $workflowname ) {
 	$self->logDebug("projectname", $projectname);
-	$self->logDebug("workflownumber", $workflownumber);
+	$self->logDebug("workflowname", $workflowname);
 	
-	#### VERIFY INPUTS
-	print "Workflow number must be an integer (1, 2, ...)." and exit if $workflownumber !~ /^\d+$/;
-
-	#### SET USERNAME AND OWNER
-	my $username    =   $self->setUsername();
-	my $owner       =   $username;
-
-	#### GET WORKFLOW NAME
-	my $workflow = $self->table()->getWorkflowByNumber( $username, $projectname, $workflownumber );
-	$self->logDebug("workflow", $workflow);
-
 	#### GET OPTS (E.G., WORKFLOW)
 	$self->_getopts();
 	
+	#### SET USERNAME AND OWNER
+	my $username    =   $self->setUsername();
+	my $owner       =   $username;
 	my $dryrun			=		$self->dryrun();
 	my $start				=		$self->start() || 1;
 	$self->logDebug("dryrun", $dryrun);
 	$self->logDebug("username", $username);
 	$self->logDebug("projectname", $projectname);
-	$self->logDebug("workflow", $workflow);
+	$self->logDebug("workflowname", $workflowname);
 	$self->logDebug("start", $start);
-	
+
 	#### GET WORKFLOW
-	my $workflowhash=	$self->getWorkflow($username, $projectname, $workflow);		
-	print "Information for workflow not found: $workflow\n" and exit if not defined $workflowhash;
+	my $workflowhash=	$self->table()->getWorkflow($username, $projectname, $workflowname);		
+	print "Information for workflow not found: $workflowname\n" and exit if not defined $workflowhash;
 
 	#### SET HASH
 	$workflowhash->{dryrun}		=	$dryrun;
@@ -1120,7 +1105,7 @@ method runWorkflow ( $projectname, $workflownumber ) {
 		
 			foreach my $samplehash ( @$sampledata ) {
 				$self->logDebug("Running workflow with samplehash", $samplehash);
-				#print "Running workflow $workflow using sample: ", $samplehash->{sample}, "\n";
+				#print "Running workflow $workflowname using sample: ", $samplehash->{sample}, "\n";
 				$self->_runWorkflow($workflowhash, $samplehash);
 				my $success	=	$self->_runWorkflow($workflowhash, $samplehash);
 				$self->logDebug("success", $success);
@@ -1133,9 +1118,9 @@ method runWorkflow ( $projectname, $workflownumber ) {
 		}
 	}
 	else {
-		#print "Running workflow $workflow\n";
+		#print "Running workflow $workflowname\n";
 		$self->_runWorkflow($workflowhash, undef);
-		#print "Completed workflow $workflow\n";
+		#print "Completed workflow $workflowname\n";
 	}
 }
 
@@ -1153,12 +1138,13 @@ method _runWorkflow ($workflowhash, $samplehash) {
 	$workflowhash->{printlog}	=	$self->printlog();
 
 	$workflowhash->{conf}			=	$self->conf();
-	$workflowhash->{db}				=	$self->table()->db();
+	$workflowhash->{table}		=	$self->table();
 	$workflowhash->{scheduler}=	$self->scheduler();
 	
 	require Engine::Workflow;
 	my $object	= Engine::Workflow->new($workflowhash);
-	#$self->logDebug("object", $object);
+	$self->logNote("object", $object);
+	
 	return $object->executeWorkflow($workflowhash);
 }
 
@@ -1194,18 +1180,6 @@ method getSampleJobs ($workflowhash, $sampledata) {
 	
 }
 
-
-method getWorkflow ($username, $projectname, $workflowname) {
-	$self->logDebug("username", $username);
-	$self->logDebug("projectname", $projectname);
-	$self->logDebug("workflowname", $workflowname);
-
-	my $query = qq{SELECT * FROM workflow 
-WHERE projectname='$projectname' 
-AND workflowname='$workflowname'
-};
-	return   $self->table()->db()->queryhash( $query );
-}
 
 method _getProjectHash ($username, $project) {
 	$self->logDebug("username", $username);
@@ -1363,7 +1337,7 @@ method showStage {
 	print "stagenumber not defined\n" and exit if not defined $stagenumber;
 	
 	#### GET WORKFLOW
-	my $workflowhash=	$self->getWorkflow($username, $project, $workflow);
+	my $workflowhash=	$self->table()->getWorkflow($username, $project, $workflow);
 	$self->logDebug("workflowhash", $workflowhash);
 	
 	#### SET DRY RUN
@@ -1401,7 +1375,6 @@ method showStage {
         my $success	=	$self->_showStage($workflowhash, $samplehash, $stagenumber);
         $self->logDebug("success", $success);
 	}
-	
 }
 
 method _showStage ($workflowhash, $samplehash, $stagenumber) {
@@ -1467,7 +1440,7 @@ method _showStage ($workflowhash, $samplehash, $stagenumber) {
     $stage->{queue} = $workflowobject->queueName($username, $project, $workflow);
 
    	#### SET SGE OPTIONS
-	my $scheduler	=	$workflowobject->scheduler() || $workflowobject->conf()->getKey("agua:SCHEDULER", undef);
+	my $scheduler	=	$workflowobject->scheduler() || $workflowobject->conf()->getKey("core:SCHEDULER", undef);
 	if ( defined $scheduler and $scheduler eq "sge" ) {
         #### SLOTS (NUMBER OF CPUS ALLOCATED TO CLUSTER JOB)
         my $cluster 	=	$workflowobject->cluster() || $workflowhash->{cluster};
@@ -1477,8 +1450,8 @@ method _showStage ($workflowhash, $samplehash, $stagenumber) {
     #### SAMPLE HASH
     $stage->{samplehash}	=  	$samplehash;
     $stage->{outputdir}		=  	$outputdir;
-    $stage->{qsub}			=  	$self->conf()->getKey("cluster:QSUB");
-    $stage->{qstat}			=  	$self->conf()->getKey("cluster:QSTAT");
+    $stage->{qsub}			=  	$self->conf()->getKey("scheduler:QSUB");
+    $stage->{qstat}			=  	$self->conf()->getKey("scheduler:QSTAT");
 
     #### LOG
     $stage->{log} 			=	$self->log();
@@ -1538,7 +1511,7 @@ method runStage ( $project, $workflow, $stagenumber ) {
 	$self->logDebug("samplehash", $samplehash);
 
 	#### GET WORKFLOW
-	my $workflowhash=	$self->getWorkflow($username, $project, $workflow);
+	my $workflowhash=	$self->table()->getWorkflow($username, $project, $workflow);
 	$self->logDebug("workflowhash", $workflowhash);
 	
 	#### SET DRY RUN
