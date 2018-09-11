@@ -1,6 +1,3 @@
 #### LOG
-log
+log/*
 !log/.dummy
-db/agua.sqlite
-db/agua.sqlite
-util/.gitmodules

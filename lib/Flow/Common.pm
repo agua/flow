@@ -180,16 +180,6 @@ method _indentSecond ($first, $second, $indent) {
 }
 
 method setUsername {
-	my $whoami    =   `whoami`;
-	$whoami       =~  s/\s+$//;
-	$self->logDebug("whoami", $whoami);
-
-	#### RETURN ACCOUNT NAME IF NOT ROOT
-	if ( $whoami ne "root" ) {
-		$self->username($whoami);
-		return $whoami;
-	}
-	
 	#### OTHERWISE, SET USERNAME IF PROVIDED
 	my $username    =   $self->username();
 	$self->logDebug("username", $username);
@@ -198,6 +188,9 @@ method setUsername {
 		return $username;
 	}
 	else {
+    my $whoami    =   `whoami`;
+    $whoami       =~  s/\s+$//;
+    $self->logDebug("whoami", $whoami);    
 		$self->username($whoami);
 		return $whoami;
 	}

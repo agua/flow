@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS parameter
 (
   owner           VARCHAR(30) NOT NULL,
   username        VARCHAR(30) NOT NULL,
-  package         VARCHAR(40) NOT NULL,
+  packagename     VARCHAR(40) NOT NULL,
   version         VARCHAR(40) NOT NULL,
   installdir      VARCHAR(255) NOT NULL,    
 

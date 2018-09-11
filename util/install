@@ -1,15 +1,45 @@
 #!/usr/bin/perl -w
 
-my $arch = $^O;
-# print "arch: $arch\n";
+# method getArch {
+#   my $arch = $self->arch();
+#   return $arch if defined $arch;
+  
+#   $arch   =   "linux";
+#   my $command = "uname -a";
+#   my $output = `$command`;
+  
+#   #### Linux ip-10-126-30-178 2.6.32-305-ec2 #9-Ubuntu SMP Thu Apr 15 08:05:38 UTC 2010 x86_64 GNU/Linux
+#   $arch =  "ubuntu" if $output =~ /ubuntu/i;
+#   #### Linux ip-10-127-158-202 2.6.21.7-2.fc8xen #1 SMP Fri Feb 15 12:34:28 EST 2008 x86_64 x86_64 x86_64 GNU/Linux
+#   $arch =  "centos" if $output =~ /fc\d+/;
+#   $arch =  "centos" if $output =~ /\.el\d+\./;
+#   $arch =  "debian" if $output =~ /debian/i;
+#   $arch =  "freebsd" if $output =~ /freebsd/i;
+#   $arch =  "osx" if $output =~ /darwin/i;
 
+#   $self->arch($arch);
+#     $self->logDebug("FINAL arch", $arch);
+  
+#   return $arch;
+# }
+
+
+
+my $os = $^O;
 my $branch = undef;
-if ( $arch eq "darwin" ) {
+my $archname = undef;
+if ( $os eq "darwin" ) {
   print "Loading extlib for OSX\n";
 
 }
-elsif ( $arch eq "linux" ) {
+elsif ( $os eq "linux" ) {
   print "Loading extlib for Linux\n";
+
+  my $osname=`perl -V  | grep "archname="`;
+  # print "osname: $osname\n";
+  ($archname) = $osname =~ /archname=(\S+)/;
+  print "archname: $archname\n";
+
   if ( -f "/etc/lsb-release" ) {
     print "Getting Ubuntu version...\n";
     my $version = `cat /etc/lsb-release | grep DISTRIB_RELEASE`;
@@ -37,19 +67,17 @@ elsif ( $arch eq "linux" ) {
     print "No LSB or CentOS release file found in /etc. This Linux flavor is not supported. Use 'perlmods' executable to install perl modules to extlib directory\n";
   }
 }
-elsif ( $arch eq "MSWin32" ) {
+elsif ( $os eq "MSWin32" ) {
   print "Loading extlib for Windows\n";
 
 }
 
-if ( $branch ) {
-  print "extlib branch: $branch\n";
+if ( $branch and $archname ) {
+  print "extlib branch: $branch-$archname\n";
 
   use FindBin qw($Bin);
   print "Bin: $Bin\n";
-  my ($home) = $Bin =~ /^(.+)\/lib\/Agua\/bin\/install/;
-  print "home: $home\n";
-  my $command = "cd $home/extlib; git checkout $branch";
+  my $command = "cd $Bin/../extlib; git checkout $branch-$archname";
   print "$command\n";
   `$command`;
 }
