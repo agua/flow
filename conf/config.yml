@@ -9,10 +9,10 @@ core:
   USERDIR: /home
   SCHEDULER: local
 scheduler:
-  CANCELJOB: '/nfs/univa/bin/lx24-amd64/qdel -j'
-  QSTAT: /nfs/univa/bin/lx24-amd64/qstat
-  QSUB: /nfs/univa/bin/lx24-amd64/qsub
-  SGEBIN: /nfs/univa/bin/lx24-amd64
+  CANCELJOB: '/nfs/univa/bin/lx-amd64/qdel -j'
+  QSTAT: /nfs/univa/bin/lx-amd64/qstat
+  QSUB: /nfs/univa/bin/lx-amd64/qsub
+  SGEBIN: /nfs/univa/bin/lx-amd64
   SGEEXECDPORT: '6445'
   SGEQMASTERPORT: '6444'
   SGEROOT: /nfs/univa
