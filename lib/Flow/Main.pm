@@ -46,6 +46,7 @@ has 'force'		=> ( isa => 'Bool', is => 'rw', default 	=> 	0 	);
 has 'help'		=> ( isa => 'Bool', is => 'rw', required => 0 );
 
 #### Str
+has 'queue'		=> ( isa => 'Str', is => 'rw', required => 0 );
 has 'stages'	=> ( isa => 'Str', is => 'rw', required => 0 );
 has 'logtype'	=> ( isa => 'Str|Undef', is => 'rw', default	=>	"cli"	);
 has 'logfile'	=> ( isa => 'Str|Undef', is => 'rw', required	=>	0	);
@@ -94,7 +95,7 @@ has 'value'	    => ( isa => 'Str|Undef', is => 'rw', required => 0 );
 
 #### Obj
 has 'workflows'	 => ( isa => 'ArrayRef[Flow::Workflow]', is => 'rw', default => sub { [] } );
-has 'fields'    => ( isa => 'ArrayRef[Str|Undef]', is => 'rw', default => sub { ['username', 'database', 'project', 'number', 'workflow', 'owner', 'description', 'notes', 'outputdir', 'field', 'value', 'projfile', 'wkfile', 'outputfile', 'cmdfile', 'start', 'stop', 'stages', 'ordinal', 'from', 'to', 'status', 'started', 'stopped', 'duration', 'epochqueued', 'epochstarted', 'epochstopped', 'epochduration', 'log', 'printlog', 'scheduler', 'samplestring', 'maxjobs', 'stagenumber', 'format', 'dryrun', 'override', 'force' ] } );
+has 'fields'    => ( isa => 'ArrayRef[Str|Undef]', is => 'rw', default => sub { ['username', 'database', 'project', 'number', 'workflow', 'owner', 'description', 'notes', 'outputdir', 'field', 'value', 'projfile', 'wkfile', 'outputfile', 'cmdfile', 'start', 'stop', 'queue', 'stages', 'ordinal', 'from', 'to', 'status', 'started', 'stopped', 'duration', 'epochqueued', 'epochstarted', 'epochstopped', 'epochduration', 'log', 'printlog', 'scheduler', 'samplestring', 'maxjobs', 'stagenumber', 'format', 'dryrun', 'override', 'force' ] } );
 has 'logfh'     => ( isa => 'FileHandle', is => 'rw', required => 0 );
 
 has 'conf' 		=> (
@@ -739,21 +740,29 @@ method getOptions ( $argv, $arguments ) {
 	my $options = {};
   for (my $i = 0; $i < @$argv; $i++) {
     my $arg = $$argv[$i];
-    $self->logDebug("arg", $arg);
+    # $self->logDebug("arg", $arg);
 
     for (my $k = 0; $k < @$arguments; $k++) {
       my $argument = $$arguments[$k][0];
       my $regex = $$arguments[$k][1];
-      $self->logDebug("argument", $argument);
-      $self->logDebug("regex", $regex);
+      my $description = undef;
+      $description = $$arguments[$k][2] if defined $$arguments[$k][2];
+      $description = $regex if not defined $description;
+      # $self->logDebug("argument", $argument);
+      # $self->logDebug("regex", $regex);
+      # $self->logDebug("description", $description);
     
       if ( $arg eq $argument ) {
-        if ( $i == @$argv - 1 ) {
+      	if ( not defined $regex ) {
+        	$argument =~ s/^\-+//;
+      		$options->{$argument} = 1;
+      	}
+        elsif ( $i == @$argv - 1 ) {
         	print "Value missing for argument: $argument\n";
         	exit;
         }
-        elsif ( $$argv[$i + 1] !~ /$regex/ ) { 
-          print "Wrong format for argument '$argument'. Should be regex: $regex\n";
+        elsif ( $$argv[$i + 1] !~ /^$regex$/ ) { 
+          print "Wrong format for argument '$argument'. Correct format is: $description\n";
           exit;
         }
         else {
@@ -1060,31 +1069,73 @@ method insertWorkflow ( $projectname = undef, $wkfile = undef, $workflownumber =
 	print "Inserted workflow '$workflowname' at number $workflownumber in project '$projectname' for user '$username'\n";
 }
 
-method runWorkflow ( $projectname, $workflowname ) {
+method runWorkflowUsage {
+	print qq{USAGE: flow runworkflow <projectname> <workflowname> [options]
+
+projectname   : Name of existing project in database
+workflowname  : Name of workflow in project
+
+Options:
+--start Int      : Start from this stage in the workflow
+--stop Int       : Stop after completing this workflow stage
+--queue Str      : Scheduler queue to submit job
+--dryrun         : Set this flag to go through the motions without actually running the workflow
+
+};
+
+}
+
+method runWorkflow ( $projectname = undef, $workflowname = undef ) {
 	$self->logDebug("projectname", $projectname);
 	$self->logDebug("workflowname", $workflowname);
+
+	if ( not defined $projectname 
+		or not defined $workflowname ) {
+		print "Error: Missing arguments.\n\n";
+		$self->runWorkflowUsage();
+		exit;
+	}
+
+	my $formats = [
+		[ "--start", "\\d+", "Integer" ],
+		[ "--stop", "\\d+", "Integer" ],
+		[ "--stages", "\\d+\\-\\d+", "Integer-Integer" ],
+		[ "--queue", "\\w.+", "String" ],
+		[ "--username", "\\w.+", "String" ],
+		[ "--dryrun" ],
+	];
+	my $options = $self->getOptions( \@ARGV, $formats );
+	$self->logDebug("options", $options);
 	
-	#### GET OPTS (E.G., WORKFLOW)
-	$self->_getopts();
-	
-	#### SET USERNAME AND OWNER
-	my $username    =   $self->setUsername();
+	#### GET OPTIONS
+	my $username    =   $options->{username} || $self->setUsername();
 	my $owner       =   $username;
-	my $dryrun			=		$self->dryrun();
-	my $start				=		$self->start() || 1;
-	$self->logDebug("dryrun", $dryrun);
+	my $start				=		$options->{start};
+	my $stop				=		$options->{stop};
+	my $dryrun			=		$options->{dryrun};
+	
+	#### GET QUEUE FROM CONFIG IF NOT DEFINED BY USER
+	my $queue				=		$options->{queue};
+	$queue = $self->conf()->getKey("scheduler:QUEUE") if not defined $queue;
+
 	$self->logDebug("username", $username);
 	$self->logDebug("projectname", $projectname);
 	$self->logDebug("workflowname", $workflowname);
 	$self->logDebug("start", $start);
-
+	$self->logDebug("stop", $stop);
+	$self->logDebug("queue", $queue);
+	$self->logDebug("dryrun", $dryrun);
+	
 	#### GET WORKFLOW
 	my $workflowhash=	$self->table()->getWorkflow($username, $projectname, $workflowname);		
 	print "Information for workflow not found: $workflowname\n" and exit if not defined $workflowhash;
+	$self->logDebug("workflowhash", $workflowhash);
 
 	#### SET HASH
-	$workflowhash->{dryrun}		=	$dryrun;
 	$workflowhash->{start}		=	$start;
+	$workflowhash->{stop}		  =	$stop;
+	$workflowhash->{queue}		=	$queue;
+	$workflowhash->{dryrun}		=	$dryrun;
 	$self->logDebug("workflowhash", $workflowhash);
 	
 	#### GET SAMPLES
