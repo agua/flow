@@ -7,7 +7,7 @@ core:
   INSTALLDIR: /home/stuart.young/flow
   TEMPDIR: /tmp
   USERDIR: /home
-  SCHEDULER: sge
+  SCHEDULER: local
 scheduler:
   CANCELJOB: '/nfs/univa/bin/lx24-amd64/qdel -j'
   QSTAT: /nfs/univa/bin/lx24-amd64/qstat
