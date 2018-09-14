@@ -12,6 +12,7 @@ scheduler:
   CANCELJOB: '/nfs/univa/bin/lx-amd64/qdel -j'
   QSTAT: /nfs/univa/bin/lx-amd64/qstat
   QSUB: /nfs/univa/bin/lx-amd64/qsub
+  QUEUE: regular.q
   SGEBIN: /nfs/univa/bin/lx-amd64
   SGEEXECDPORT: '6445'
   SGEQMASTERPORT: '6444'
