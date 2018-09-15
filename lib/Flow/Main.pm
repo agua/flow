@@ -46,7 +46,7 @@ has 'force'		=> ( isa => 'Bool', is => 'rw', default 	=> 	0 	);
 has 'help'		=> ( isa => 'Bool', is => 'rw', required => 0 );
 
 #### Str
-has 'queue'		=> ( isa => 'Str', is => 'rw', required => 0 );
+#has 'queue'		=> ( isa => 'Str', is => 'rw', required => 0 );
 has 'stages'	=> ( isa => 'Str', is => 'rw', required => 0 );
 has 'logtype'	=> ( isa => 'Str|Undef', is => 'rw', default	=>	"cli"	);
 has 'logfile'	=> ( isa => 'Str|Undef', is => 'rw', required	=>	0	);
@@ -1076,9 +1076,10 @@ projectname   : Name of existing project in database
 workflowname  : Name of workflow in project
 
 Options:
+--submit Int     : Use 1 to submit to cluster, 0 to run locally
 --start Int      : Start from this stage in the workflow
 --stop Int       : Stop after completing this workflow stage
---queue Str      : Scheduler queue to submit job
+--qsuboptions Str: Optional parmaters for 'qsub' submit job command
 --dryrun         : Set this flag to go through the motions without actually running the workflow
 
 };
@@ -1097,10 +1098,12 @@ method runWorkflow ( $projectname = undef, $workflowname = undef ) {
 	}
 
 	my $formats = [
+		[ "--submit", "(1|0)", "1 or 0" ],
 		[ "--start", "\\d+", "Integer" ],
 		[ "--stop", "\\d+", "Integer" ],
 		[ "--stages", "\\d+\\-\\d+", "Integer-Integer" ],
-		[ "--queue", "\\w.+", "String" ],
+		[ "--qsuboptions", ".+", "Text" ],
+		# [ "--cluster", "\\w.+", "String" ],
 		[ "--username", "\\w.+", "String" ],
 		[ "--dryrun" ],
 	];
@@ -1110,20 +1113,29 @@ method runWorkflow ( $projectname = undef, $workflowname = undef ) {
 	#### GET OPTIONS
 	my $username    =   $options->{username} || $self->setUsername();
 	my $owner       =   $username;
+	my $submit		  =		$options->{submit};
 	my $start				=		$options->{start};
 	my $stop				=		$options->{stop};
 	my $dryrun			=		$options->{dryrun};
 	
 	#### GET QUEUE FROM CONFIG IF NOT DEFINED BY USER
-	my $queue				=		$options->{queue};
-	$queue = $self->conf()->getKey("scheduler:QUEUE") if not defined $queue;
+	my $qsuboptions	=		$options->{qsuboptions};
+	if ( not defined $qsuboptions ) {
+		my $queue = $self->conf()->getKey("scheduler:QUEUE") if not defined $qsuboptions;
+		$qsuboptions = "-q $queue" if defined $queue and $queue ne "";
+	}
+
+	#### GET CLUSTER FROM CONFIG. THIS IS USED TO LOCATE RESOURCES 
+	#### E.G.: SGEROOT/CLUSTER/common/act_qmaster
+	my $cluster			= $self->conf()->getKey("scheduler:CLUSTER");
 
 	$self->logDebug("username", $username);
 	$self->logDebug("projectname", $projectname);
 	$self->logDebug("workflowname", $workflowname);
 	$self->logDebug("start", $start);
 	$self->logDebug("stop", $stop);
-	$self->logDebug("queue", $queue);
+	$self->logDebug("qsuboptions", $qsuboptions);
+	# $self->logDebug("cluster", $cluster);
 	$self->logDebug("dryrun", $dryrun);
 	
 	#### GET WORKFLOW
@@ -1132,9 +1144,11 @@ method runWorkflow ( $projectname = undef, $workflowname = undef ) {
 	$self->logDebug("workflowhash", $workflowhash);
 
 	#### SET HASH
+	$workflowhash->{submit}		=	$submit;
 	$workflowhash->{start}		=	$start;
 	$workflowhash->{stop}		  =	$stop;
-	$workflowhash->{queue}		=	$queue;
+	$workflowhash->{qsuboptions}		=	$qsuboptions;
+	# $workflowhash->{cluster}		=	$cluster;
 	$workflowhash->{dryrun}		=	$dryrun;
 	$self->logDebug("workflowhash", $workflowhash);
 	
@@ -1430,10 +1444,10 @@ method showStage {
 
 method _showStage ($workflowhash, $samplehash, $stagenumber) {
 	$self->logDebug("stagenumber", $stagenumber);
-    my $username = $workflowhash->{username};
-    my $project = $workflowhash->{project};
-    my $workflow = $workflowhash->{name};
-    $self->logDebug("workflow", $workflow);
+  my $username = $workflowhash->{username};
+  my $project = $workflowhash->{project};
+  my $workflow = $workflowhash->{name};
+  $self->logDebug("workflow", $workflow);
     
 	$workflowhash->{start}		=	$stagenumber;
 	$workflowhash->{stop}		=	$stagenumber + 1;
@@ -1487,38 +1501,38 @@ method _showStage ($workflowhash, $samplehash, $stagenumber) {
     
     #### MAX JOBS
     $stage->{maxjobs}		=	$workflowobject->maxjobs();
-    #### QUEUE
-    $stage->{queue} = $workflowobject->queueName($username, $project, $workflow);
 
    	#### SET SGE OPTIONS
 	my $scheduler	=	$workflowobject->scheduler() || $workflowobject->conf()->getKey("core:SCHEDULER", undef);
-	if ( defined $scheduler and $scheduler eq "sge" ) {
-        #### SLOTS (NUMBER OF CPUS ALLOCATED TO CLUSTER JOB)
-        my $cluster 	=	$workflowobject->cluster() || $workflowhash->{cluster};
-        $stage->{slots}	=	$workflowobject->getSlots($username, $cluster);
-	}
 
-    #### SAMPLE HASH
-    $stage->{samplehash}	=  	$samplehash;
-    $stage->{outputdir}		=  	$outputdir;
-    $stage->{qsub}			=  	$self->conf()->getKey("scheduler:QSUB");
-    $stage->{qstat}			=  	$self->conf()->getKey("scheduler:QSTAT");
 
-    #### LOG
-    $stage->{log} 			=	$self->log();
-    $stage->{printlog} 		=	$self->printlog();
-    $stage->{logfile} 		=	$self->logfile();
+	# if ( defined $scheduler and $scheduler eq "sge" ) {
+ #        #### SLOTS (NUMBER OF CPUS ALLOCATED TO CLUSTER JOB)
+ #        my $cluster 	=	$workflowobject->cluster() || $workflowhash->{cluster};
+ #        $stage->{slots}	=	$workflowobject->getSlots($username, $cluster);
+	# }
 
-    #### SET SCRIPT, STDOUT AND STDERR FILES
-    $stage->{scriptfile} 	=	"$scriptdir/$stagenumber-$stagename.sh";
-    $stage->{stdoutfile} 	=	"$stdoutdir/$stagenumber-$stagename.stdout";
-    $stage->{stderrfile} 	= 	"$stderrdir/$stagenumber-$stagename.stderr";
+  #### SAMPLE HASH
+  $stage->{samplehash}	=  	$samplehash;
+  $stage->{outputdir}		=  	$outputdir;
+  $stage->{qsub}			=  	$self->conf()->getKey("scheduler:QSUB");
+  $stage->{qstat}			=  	$self->conf()->getKey("scheduler:QSTAT");
 
-    if ( defined $id ) {
-        $stage->{scriptfile} 	=	"$scriptdir/$stagenumber-$stagename-$id.sh";
-        $stage->{stdoutfile} 	=	"$stdoutdir/$stagenumber-$stagename-$id.stdout";
-        $stage->{stderrfile} 	= 	"$stderrdir/$stagenumber-$stagename-$id.stderr";
-    }
+  #### LOG
+  $stage->{log} 			=	$self->log();
+  $stage->{printlog} 		=	$self->printlog();
+  $stage->{logfile} 		=	$self->logfile();
+
+  #### SET SCRIPT, STDOUT AND STDERR FILES
+  $stage->{scriptfile} 	=	"$scriptdir/$stagenumber-$stagename.sh";
+  $stage->{stdoutfile} 	=	"$stdoutdir/$stagenumber-$stagename.stdout";
+  $stage->{stderrfile} 	= 	"$stderrdir/$stagenumber-$stagename.stderr";
+
+  if ( defined $id ) {
+      $stage->{scriptfile} 	=	"$scriptdir/$stagenumber-$stagename-$id.sh";
+      $stage->{stdoutfile} 	=	"$stdoutdir/$stagenumber-$stagename-$id.stdout";
+      $stage->{stderrfile} 	= 	"$stderrdir/$stagenumber-$stagename-$id.stderr";
+  }
 
 	require Engine::Stage;
   my $stageobject = Engine::Stage->new($stage);
