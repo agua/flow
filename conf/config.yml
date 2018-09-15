@@ -4,7 +4,7 @@ core:
   AGUADIR: agua
   AGUAUSER: agua
   EXECUTION_TEMPDIR: /tmp
-  INSTALLDIR: /home/stuart.young/flow
+  INSTALLDIR: /home/Stuart.Young/flow
   TEMPDIR: /tmp
   USERDIR: /home
   SCHEDULER: local
