@@ -36,7 +36,7 @@ has 'logfile'	=> ( isa => 'Str|Undef', is => 'rw', required	=>	0	);
 
 #### STORED LOGISTICS VARIABLES
 has 'owner'	    => ( isa => 'Str|Undef', is => 'rw', required => 0, default => undef );
-has 'usernamer'	    => ( isa => 'Str|Undef', is => 'rw', required => 0, default => undef );
+has 'username'	    => ( isa => 'Str|Undef', is => 'rw', required => 0, default => undef );
 has 'package'	=> ( isa => 'Str|Undef', is => 'rw', required => 0 );
 has 'projectname'	=> ( isa => 'Str|Undef', is => 'rw', required => 0 );
 has 'workflowname'	=> ( isa => 'Str|Undef', is => 'rw', required => 0 );
