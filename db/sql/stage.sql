@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS stage (
   prescript           VARCHAR(255) NOT NULL default '',
   cluster             VARCHAR(20)NOT NULL default '',
   submit              INT(1) NOT NULL DEFAULT 0,
-  queue               VARCHAR(255) NOT NULL DEFAULT 0,
+  qsuboptions         VARCHAR(255) NOT NULL DEFAULT 0,
 
   stderrfile          varchar(255) default NULL,
   stdoutfile          varchar(255) default NULL,
