@@ -1,3 +1,5 @@
 #### LOG
 log/*
 !log/.dummy
+db/agua.sqlite
+conf/config.yml
