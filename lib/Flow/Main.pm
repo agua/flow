@@ -336,6 +336,10 @@ method show ( $projectname ) {
 	print $output;
 }
 
+method addP ( $projectname ) {
+    return $self->addProject( $projectname );
+}
+
 method addProject ( $projectname ) {
 	$self->logDebug("projectname", $projectname);
 	print "Usage: flow <projectname> [options]" and exit if not defined $	projectname or $self->help();
@@ -434,6 +438,10 @@ method _addProject ($projectobject) {
 	$self->projectToDatabase($username, $projectobject);
 }
 
+method loadP {
+	return $self->loadProject()
+}
+
 method loadProject {
 	$self->logDebug("");
 
@@ -459,6 +467,10 @@ method loadProject {
 	$projectobject->read();
 	
 	$self->_addProject($projectobject);
+}
+
+method delP ( $projectname ) {
+	return $self->deleteProject( $projectname );
 }
 
 method deleteProject ( $projectname ) {
@@ -528,6 +540,11 @@ Options:
 };
 
 }
+
+method runP ( $projectname ) {
+	return $self->runProject( $projectname );
+}
+
 method runProject ( $projectname ) {
 	$self->logDebug("projectname", $projectname);
 	
@@ -785,6 +802,10 @@ workflowfile  : Relative or absolute path to YAML-format *.wrk workflow file
 
 }
 
+method addW ( $projectname = undef , $wkfile = undef ) {
+    return $self->addWorkflow ( $projectname, $wkfile );
+}
+    
 method addWorkflow ( $projectname = undef , $wkfile = undef ) {
 	$self->logDebug("projectname", $projectname);
 	$self->logDebug("wkfile", $wkfile);
@@ -888,6 +909,11 @@ method addWorkflow ( $projectname = undef , $wkfile = undef ) {
 	$workflow->save();
 
 	print "Added workflow '$workflowname' at number $workflownumber in project '$projectname' for user '$username'\n";
+}
+
+
+method delW ( $projectname, $workflowname ) {
+	return $self->deleteWorkflow ( $projectname, $workflowname );
 }
 
 method deleteWorkflow ( $projectname, $workflowname ) {
@@ -1084,6 +1110,10 @@ Options:
 
 };
 
+}
+
+method runW ( $projectname = undef, $workflowname = undef ) {
+	return $self->runWorkflow( $projectname, $workflowname );
 }
 
 method runWorkflow ( $projectname = undef, $workflowname = undef ) {

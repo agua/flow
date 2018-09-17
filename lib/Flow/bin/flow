@@ -16,13 +16,15 @@ USAGE: flow <subcommand> [switch] [Options] [--help]
 
 =over 2
 
-    list            List all projects and contained workflows
-    addproject      Add a new project
-    deleteproject   Delete a project
-    addworkflow     Add a workflow to an existing project
-    deleteworkflow  Delete a workflow from a project
-    addapp          Add an application to a workflow in an existing project
-    deleteapp       Delete an application from a workflow
+    list                   List all projects and contained workflows
+    addproject | addp      Add a new project
+    deleteproject | delp   Delete a project
+    runproject | runp      Run a project
+    addworkflow | addw     Add a workflow to an existing project
+    deleteworkflow | delw  Delete a workflow from a project
+    runworkflow | runw     Run a workflow
+    addapp | adda          Add an application to a workflow
+    deleteapp | dela       Delete an application from a workflow
 
 =back
 
@@ -111,12 +113,15 @@ my $username = &getUsername(\@ARGV);
 my $subcommand = shift @ARGV;
 print "No subcommand provided (try --help)\n" and exit if not defined $subcommand;
 usage() if $subcommand =~ /^-h$/ or $subcommand =~ /^--help$/;
-usage() if $subcommand !~ /^(list|add|delete|load|desc|edit|insert|run|show)/;
+usage() if $subcommand !~ /^(list|add|delete|del|load|desc|edit|insert|run|show)/;
 
 #### GET METHOD
 my $method = $subcommand;
-if ( $subcommand =~ /^(add|delete|load|edit|insert|run)/ ) {
-    $subcommand =~ /^(add|delete|load|edit|insert|run)(.+)$/;
+if ( $subcommand =~ /^(add|delete|del|load|edit|insert|run)/ ) {
+    $subcommand =~ /^(add|delete|del|load|edit|insert|run)(.+)$/;
+    if ( not defined $2 or $2 eq "" ) {
+      usage();
+    }
     $method = $1 . uc(substr($2, 0, 1)) . substr($2, 1); 
 } 
 
