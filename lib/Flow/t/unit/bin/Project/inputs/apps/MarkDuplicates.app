@@ -1,4 +1,0 @@
----
-appname: MarkDuplicates
-description: ''
-parameters: []

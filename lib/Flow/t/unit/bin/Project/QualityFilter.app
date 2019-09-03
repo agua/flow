@@ -1,4 +1,0 @@
----
-appname: QualityFilter
-description: ''
-parameters: []

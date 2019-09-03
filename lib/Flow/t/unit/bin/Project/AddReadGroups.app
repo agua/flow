@@ -1,4 +1,0 @@
----
-appname: AddReadGroups
-description: ''
-parameters: []
