@@ -25,6 +25,7 @@ USAGE: flow <subcommand> [switch] [Options] [--help]
     runworkflow | runw     Run a workflow
     addapp | adda          Add an application to a workflow
     deleteapp | dela       Delete an application from a workflow
+    samples                List samples for project
 
 =back
 
@@ -105,15 +106,15 @@ my $conf = Conf::Yaml->new(
 #### GET ARGUMENTS
 usage() if not @ARGV;
 
-#### BLOCK NON-ROOT IF --user DIFFERS FROM USER
-my $username = &getUsername(\@ARGV);
-&checkRoot if defined $username;
+# #### BLOCK NON-ROOT IF --user DIFFERS FROM USER
+# my $username = &getUsername(\@ARGV);
+# &checkRoot if defined $username;
 
 #### CHECK SUBCOMMAND
 my $subcommand = shift @ARGV;
 print "No subcommand provided (try --help)\n" and exit if not defined $subcommand;
 usage() if $subcommand =~ /^-h$/ or $subcommand =~ /^--help$/;
-usage() if $subcommand !~ /^(list|add|delete|del|load|desc|edit|insert|run|show)/;
+usage() if $subcommand !~ /^(list|add|delete|del|load|desc|edit|insert|run|show|samples)/;
 
 #### GET METHOD
 my $method = $subcommand;
@@ -175,15 +176,15 @@ sub getArgument {
   }
 }
 
-sub checkRoot {
-  my $whoami = `whoami`;
-  $whoami =~ s/\s+$//;
-  #print "whoami: $whoami\n";
-  if ( not $whoami eq "root" and defined $username and $username ne $whoami ) {
-    print "You must be root to create projects/workflows in another user's name ($username)\n";
-    exit;
-  }
-}
+# sub checkRoot {
+#   my $whoami = `whoami`;
+#   $whoami =~ s/\s+$//;
+#   #print "whoami: $whoami\n";
+#   if ( not $whoami eq "root" and defined $username and $username ne $whoami ) {
+#     print "You must be root to create projects/workflows in another user's name ($username)\n";
+#     exit;
+#   }
+# }
 
 sub getUsername {
   my $argv    =   shift;

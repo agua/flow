@@ -22,6 +22,7 @@ use Flow::Workflow;
 use Flow::App;
 use Flow::Parameter;
 use Table::Main;
+use Util::VersionInfo;
 
 #### Int
 has 'log'		=> ( isa => 'Int', is => 'rw', default 	=> 	0 	);  
@@ -108,6 +109,13 @@ has 'table'		=>	(
 	isa 		=>	'Table::Main',
 	lazy		=>	1,
 	builder	=>	"setTable"
+);
+
+has 'versioninfo' =>	(
+	is 			=>	'rw',
+	isa 		=>	'Util::VersionInfo',
+	lazy		=>	1,
+	builder	=>	"setVersionInfo"
 );
 
 method BUILD ( $inputs ) { 
@@ -223,7 +231,7 @@ WHERE username='$username'};
   
   print "Projects:\n";
   for my $project ( @$projects ) {
-  	print "$project->{projectname}\t$project->{description}\t$project->{notes}\n"
+  	print "$project->{username}\t$project->{projectname}\t$project->{description}\t$project->{notes}\n"
   }
 }
 
@@ -237,8 +245,7 @@ method listall {
 	print "username not defined\n" and exit if not defined $username;
 
 	#### GET WORKFLOWS
-	my $query	=	qq{SELECT * FROM project
-WHERE username='$username'};
+	my $query	=	qq{SELECT * FROM project};
 	my $projects    =   $self->table()->db()->queryhasharray($query) || [];
   $self->logDebug("projects", $projects);
   
@@ -246,6 +253,92 @@ WHERE username='$username'};
   for my $project ( @$projects ) {
   	print $self->desc( $project );
   }
+}
+
+
+method samples ( $projectname = undef ) {
+ 	$self->logDebug("projectname", $projectname);
+
+	if ( not defined $projectname ) {
+		print "Missing arguments.\n\n";
+		$self->samplesUsage();
+		exit;
+	}
+
+	my $formats = [
+		[ "--username", "\\w.*" ]
+	];
+	my $options = $self->getOptions( \@ARGV, $formats );
+	$self->logDebug("options", $options);
+
+	#### SET USERNAME AND OWNER
+	my $username    =   $self->setUsername();
+	$username = $options->{username} if defined $options->{username};
+	print "username not defined\n" and exit if not defined $username;
+
+	#### VERIFY PROJECT EXISTS
+	my $isproject = $self->table()->isProject( $username, $projectname );
+	$self->logDebug("isproject", $isproject);
+	if ( not $isproject ) {
+	    print "Project not found: $projectname\n";
+	    exit;
+	}
+
+	my $sampletable = $self->table()->getSampleTable( $username, $projectname );
+	$self->logDebug("sampletable", $sampletable);
+	my $samples = $self->table()->getSamples( $sampletable, $username, $projectname );
+	$self->logDebug("samples", $samples);
+	if ( not defined $samples or scalar( @$samples ) == 0 ) {
+		print "No samples for project '$projectname' owned by username '$username'\n";
+		exit;
+	}
+
+	my $fields = $self->table()->db()->fields( $sampletable );
+	$self->logDebug("fields", $fields);
+	my $output = $self->formatSamples( $fields, $samples );
+	# $self->logDebug("output", $output);
+
+	print $output;
+}
+
+method formatSamples ( $fields, $samples ) {
+	$self->logDebug("samples[0]", $$samples[0]);
+	my $maxlength = 15;
+	my $maxlengths = [];
+	foreach my $field ( @$fields ) {
+		my $length = length( $field ) > $maxlength ? len( $field ) : $maxlength;
+		push @$maxlengths, $maxlength;
+	}
+	$self->logDebug("maxlengths", $maxlengths);
+
+	my $output = "";
+	$output .= $self->formatFields( $fields, $maxlengths );
+	$output .= "\n";
+	foreach my $sample ( @$samples ) {
+		my $values = [];
+		foreach my $field ( @$fields ) {
+			push @$values, $sample->{$field};
+		}
+		$output .= $self->formatFields( $values, $maxlengths );
+		$output .= "\n";
+	}
+
+	return $output;
+}
+
+method formatFields ( $fields, $lengths ) {
+	my $output = "";
+	for (my $i = 0; $i < @$fields; $i++) {
+		my $length = $$lengths[ $i ];
+		my $value = $$fields[ $i ];
+		$self->logDebug("Field $i length $length value", $value);
+		if ( length( $value ) > $length ) {
+			$value = substr( $value, 0, $length - 2) . "..";
+		}
+		$output .= $value . " " x ( $length - length( $value ) );
+	}
+
+	return $output;
 }
 
 method desc ( $projectname ) {
@@ -258,11 +351,6 @@ method desc ( $projectname ) {
 	my $username    =   $self->setUsername();
 	print "username not defined\n" and exit if not defined $username;
 
-	my $data = {
-		username    => $username,
-		projectname => $projectname
-	};
-
 	#### VERIFY PROJECT EXISTS
 	my $isproject = $self->table()->isProject( $username, $projectname );
 	$self->logDebug("isproject", $isproject);
@@ -273,24 +361,131 @@ method desc ( $projectname ) {
 
 	my $project = $self->table()->getProject( $username, $projectname );
 	$self->logDebug("project", $project);
+
 	my $workflows = $self->table()->getWorkflowsByProject( $project );
 	foreach my $workflow ( @$workflows ) {
 		my $apps = $self->table()->getStagesByWorkflow( $workflow );
 		foreach my $app ( @$apps ) {
 			$self->logDebug("app", $app);
+
 			my $parameters = $self->table()->getParametersByStage( $app );
 			$self->logDebug("parameters", $parameters);
 
+			foreach my $parameter ( @$parameters ) {
+				my @keys = keys %$parameter;
+				foreach my $key ( @keys ) {
+					$self->logDebug("parameter->{$key}", $parameter->{$key});
+					$self->logDebug("parameter->{$key} NOT DEFINED", $parameter->{$key}) if not defined $parameter->{$key};			
+					$self->logDebug("parameter->{$key} EMPTY STRING", $parameter->{$key}) if $parameter->{$key} eq "";			
+					if ( not defined $parameter->{$key} or $parameter->{$key} eq "" ) {
+						$self->logDebug("DELETING KEY: $key");
+						delete $parameter->{$key};
+					}
+
+					if ( defined $app->{$key} ) {
+						delete $parameter->{$key};	
+					}
+					elsif ( defined $workflow->{$key} ) {
+						delete $parameter->{$key};	
+					}
+				}
+
+				$self->logDebug("parameter", $parameter);
+			}
+
+			my @appkeys = keys %$app;
+			foreach my $appkey ( @appkeys ) {
+				$self->logDebug("app->{$appkey}", $app->{$appkey});
+				next if $appkey eq "parameters";
+				if ( not defined $app->{$appkey} or $app->{$appkey} eq "" ) {
+					$self->logDebug("DELETING appkey: $appkey");
+					delete $app->{$appkey};
+				}
+				elsif ( defined $workflow->{$appkey} ) {
+					delete $app->{$appkey};	
+				}
+			}
+
 			$app->{parameters} = $parameters;
 		}
+
+		my @workflowkeys = keys %$workflow;
+		foreach my $workflowkey ( @workflowkeys ) {
+			$self->logDebug("workflow->{$workflowkey}", $workflow->{$workflowkey});
+			next if $workflowkey eq "apps";
+			if ( not defined $workflow->{$workflowkey} or $workflow->{$workflowkey} eq "" ) {
+				$self->logDebug("DELETING workflowkey: $workflowkey");
+				delete $workflow->{$workflowkey};
+			}
+			elsif ( defined $project->{$workflowkey} ) {
+				delete $workflow->{$workflowkey};	
+			}
+		}
+
 		$workflow->{apps} = $apps;
 	}
 
+	my @projectkeys = keys %$project;
+	foreach my $projectkey ( @projectkeys ) {
+		if ( not defined $project->{$projectkey} or $project->{$projectkey} eq "" ) {
+			$self->logDebug("DELETING projectkey: $projectkey");
+			delete $project->{$projectkey};
+		}
+	}
+
 	$project->{workflows} = $workflows;
-	my $output = Dump ( $project );
-	# $self->logDebug("output", $output);
+
+	my $output = $self->orderYaml( $project );
 
 	print $output;
+}
+
+method orderYaml ( $project ) {
+	$self->logDebug("project", $project);
+	my $output = "";
+	my $workflows = $project->{workflows};
+	delete $project->{workflows};
+	$output .= YAML::Dump( $project );
+
+	my $workflowindent = " " x 2;
+	my $appindent      = " " x 4;
+	my $paramindent    = " " x 6;
+	$output .= "workflows:\n";
+	foreach my $workflow ( @$workflows ) {
+		my $apps = $workflow->{apps};
+		delete $workflow->{apps};
+		$output .= $self->indentedYaml( $workflow, $workflowindent );
+		$output .= $workflowindent . "  apps:\n";
+		foreach my $app ( @$apps ) {
+			my $parameters = $app->{parameters};
+			delete $app->{parameters};
+			$output .= $self->indentedYaml( $app, $appindent );
+			$output .= $appindent . "  parameters:\n";
+			foreach my $parameter ( @$parameters ) {
+				$output .= $self->indentedYaml( $parameter, $paramindent );
+			}
+		}
+	}
+
+	return $output;
+}
+
+method indentedYaml ( $data, $indent ) {
+	my $yaml = YAML::Dump( $data );
+	my @lines = split "\n", $yaml;
+	shift @lines;
+	my $output = "";
+	for (my $i = 0; $i < $#lines + 1; $i++) {
+		my $line = $lines[ $i ];
+		if ( $i == 0 ) {
+			$output .= "$indent- " . $line . "\n";
+		}
+		else {
+			$output  .= "$indent  " . $line . "\n";
+		}
+	}
+
+	return $output;
 }
 
 method show ( $projectname ) {
@@ -854,8 +1049,8 @@ method addWorkflow ( $projectname = undef , $wkfile = undef ) {
 	my $workflow = Flow::Workflow->new(
 		projectname =>  $projectname,
 		username    =>  $self->username(),
-    number      =>  $workflownumber,
-  	inputfile   =>  $wkfile,
+    	number      =>  $workflownumber,
+  		inputfile   =>  $wkfile,
 		log     		=>  $self->log(),
 		printlog    =>  $self->printlog(),
 		conf        =>  $self->conf(),
@@ -898,6 +1093,13 @@ method addWorkflow ( $projectname = undef , $wkfile = undef ) {
 	
 	$self->logCritical("workflow->workflowname not defined") and exit if not defined $workflow->workflowname();
 
+	my $applications = $workflow->apps();
+	# $self->logDebug("applications", $applications);
+	$self->logDebug("Number applications", scalar( @$applications ) );
+	foreach my $application ( @$applications ) {
+		$application = $self->replaceAppFields( $username, $application );
+	}
+
 	#### ADD WORKFLOW OBJECT TO workflow TABLE
   $self->logDebug("SENDING workflow->number()", $workflow->workflownumber());
 	$projectobject->_saveWorkflow($workflow);
@@ -911,6 +1113,97 @@ method addWorkflow ( $projectname = undef , $wkfile = undef ) {
 	print "Added workflow '$workflowname' at number $workflownumber in project '$projectname' for user '$username'\n";
 }
 
+method replaceAppFields ( $username, $application ) {
+	$self->logDebug( "application", $application->appname() );
+
+  if ( $application->{installdir} =~ /<DEPENDENCY/
+  	or $application->{executor} =~ /<DEPENDENCY/ ) {
+
+    $self->logDebug( "DOING application", $application->appname() );
+    my ($packagename, $version) = $application->{installdir} =~ /<DEPENDENCY:([^:]+).*?>/;
+    $self->logDebug("packagename", $packagename);
+    $self->logDebug("version", $version);
+
+    my $query = "SELECT version FROM package
+WHERE username='$username'
+AND packagename='$packagename'";
+		$self->logDebug("query", $query);
+
+    my $versions = $self->table()->db()->queryarray( $query );
+    # $versions = [ "4.0.1", "4.0.2" ];
+    # $versions = [ "4.0.1", "4.0.3", "4.0.2" ];
+    $self->logDebug("versions", $versions);
+
+    $version = $self->selectVersion( $versions, $version );
+    $self->logDebug("version", $version);
+    if ( not defined $version ) {
+    	print "Version not defined for application: " . $application->appname() . "\n";
+    	exit;
+    }
+
+    $query = "SELECT installdir FROM package
+WHERE username='$username'
+AND packagename='$packagename'
+AND version='$version'";
+		$self->logDebug("query", $query);
+
+    my $installdir = $self->table()->db()->query( $query );
+		$self->logDebug("installdir", $installdir);
+
+    my $tempdir = $application->installdir();
+    $tempdir =~ s/<DEPENDENCY:.+?>/$installdir/g;
+    $application->installdir( $tempdir );
+    
+    $tempdir = $application->executor();
+    $tempdir =~ s/<DEPENDENCY:.+?>/$installdir/g;
+    $application->executor( $tempdir );    
+  }
+
+  $self->logDebug("RETURNING application->installdir()", $application->installdir() );
+  return $application;
+}
+
+method selectVersion ( $versions, $version ) {
+	$self->logDebug("version", $version);
+	$self->logDebug("versions", $versions);
+	if ( not defined $versions or scalar( @$versions ) == 0 ) {
+		return undef;
+	}
+	$versions = $self->versioninfo()->sortVersions( $versions );
+	$self->logDebug("versions", $versions);
+
+	if ( not defined $version ) {
+		return $$versions[ scalar( @$versions ) - 1 ];
+	}
+
+	my $semver = $self->versioninfo()->isSemVer( $version );
+	$self->logDebug("semver", $semver);
+
+	if ( $version =~ /\+$/ ) {
+		for ( my $i = scalar( $versions) - 1; $i >= 0; $i-- ) {
+			if ( $semver ) {
+				if ( $self->higherSemVer( $$versions[ $i ], $version ) ) {
+					return $$versions[ $i ];
+				}
+			}
+			else {
+				$self->logDebug("NOT SEMVER");
+				if ( $self->higherVersion( $$versions[ $i ], $version ) ) {
+					return $$versions[ $i ];
+				}
+			}
+		}
+	}
+	else {
+		for ( my $i = scalar( $versions) - 1; $i >= 0; $i-- ) {
+			if ( $$versions[ $i ] eq $version ) {
+					return $$versions[ $i ];
+			}
+		}		
+	}
+
+	return undef;
+}
 
 method delW ( $projectname, $workflowname ) {
 	return $self->deleteWorkflow ( $projectname, $workflowname );

@@ -49,6 +49,12 @@ method stageParameterToDatabase ($username, $package, $installdir, $stage, $para
   $self->logDebug("stagenumber", $stagenumber);
   
   my $paramdata = $parameterobject->exportData();
+  if ( not defined $paramdata->{paramname} 
+    and defined $paramdata->{argument} ) {
+    my $paramname = $paramdata->{argument};
+    $paramname =~ s/\-//g;
+    $paramdata->{paramname} = $paramname;
+  }
   $self->logDebug("BEFORE paramdata", $paramdata);
   $paramdata->{projectname}   = $projectname;
   $paramdata->{workflowname}    = $workflowname;
@@ -63,7 +69,7 @@ method stageParameterToDatabase ($username, $package, $installdir, $stage, $para
   $paramdata->{appname}   = $stage->appname();
   $paramdata->{version}   = $stage->version();
   $paramdata->{type}      = $stage->apptype();
-  $paramdata->{ordinal}   = 0 if not defined $paramdata->{ordinal};
+  # $paramdata->{ordinal}   = 0 if not defined $paramdata->{ordinal};
   $self->logDebug("AFTER paramdata", $paramdata); 
 
   #### REMOVE STAGE PARAMETER
@@ -73,7 +79,7 @@ method stageParameterToDatabase ($username, $package, $installdir, $stage, $para
   return $self->table()->_addStageParameter($paramdata);
 }
 
-method setTable () {
+method setTable {
   my $table = Table::Main->new({
     conf      =>  $self->conf(),
     log       =>  $self->log(),
@@ -81,9 +87,19 @@ method setTable () {
     logfile   =>  $self->logfile()
   });
 
-  $self->table($table); 
+  $self->table( $table ); 
 }
 
+method setVersionInfo {
+  my $versioninfo = Util::VersionInfo->new(
+    conf      =>  $self->conf(),
+    log       =>  $self->log(),
+    printlog  =>  $self->printlog(),
+    logfile   =>  $self->logfile()
+  );
+
+  $self->versioninfo( $versioninfo ); 
+}
 
 method setJsonParser {
   return JSON->new->allow_nonref;

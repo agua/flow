@@ -1,0 +1,148 @@
+2018-11-19 03:02:08    [DEBUG]   	Flow::Main::BUILD	112	Project::BUILD  args: undef
+2018-11-19 03:02:08    [DEBUG]   	Test::Flow::Main::testOrderYaml	26	contents: ---
+projectname: dnaseq
+projectnumber: 4
+username: vagrant
+workflows:
+  - apps:
+      - appname: bcl2fastq
+        appnumber: 1
+        apptype: converter
+        installdir: /home/stuart.young/b/apps/bcl2fastq/2.20.0
+        location: bcl2fastq
+        parameters:
+          - argument: --mask-short-adapter-reads
+            paramname: maskshort
+            paramtype: input
+          - argument: --use-bases-mask
+            paramname: usebases
+            paramtype: input
+            value: 'Y101,I8,Y10,Y101'
+      - appname: convert
+        appnumber: 2
+        apptype: converter
+        installdir: /home/stuart.young/b/apps/convert/1.0.0
+        location: convert
+        parameters:
+          - argument: --output-dir
+            paramname: outputdir
+            paramtype: input
+            value: <USERHOME>/agua/<PROJECT>/<WORKFLOW>/fastq
+    workflowname: Bcl2fastq
+    workflownumber: 1
+  - apps:
+      - appname: demultiplex
+        appnumber: 1
+        apptype: converter
+        installdir: /home/stuart.young/b/apps/demultiplex/1.0.0
+        location: bcl2fastq
+        parameters:
+          - argument: --mask-short-adapter-reads
+            paramname: maskshort
+            paramtype: input
+    workflowname: Demultiplex
+    workflownumber: 2
+xylophone: 1
+2018-11-19 03:02:08    [DEBUG]   	Test::Flow::Main::testOrderYaml	28	project: {"projectnumber":"4","projectname":"dnaseq","xylophone":"1","workflows":[{"workflownumber":"1","apps":[{"parameters":[{"argument":"--mask-short-adapter-reads","paramtype":"input","paramname":"maskshort"},{"argument":"--use-bases-mask","paramtype":"input","value":"Y101,I8,Y10,Y101","paramname":"usebases"}],"apptype":"converter","appname":"bcl2fastq","location":"bcl2fastq","installdir":"/home/stuart.young/b/apps/bcl2fastq/2.20.0","appnumber":"1"},{"parameters":[{"argument":"--output-dir","paramtype":"input","value":"<USERHOME>/agua/<PROJECT>/<WORKFLOW>/fastq","paramname":"outputdir"}],"apptype":"converter","appname":"convert","location":"convert","installdir":"/home/stuart.young/b/apps/convert/1.0.0","appnumber":"2"}],"workflowname":"Bcl2fastq"},{"workflownumber":"2","apps":[{"parameters":[{"argument":"--mask-short-adapter-reads","paramtype":"input","paramname":"maskshort"}],"apptype":"converter","appname":"demultiplex","location":"bcl2fastq","installdir":"/home/stuart.young/b/apps/demultiplex/1.0.0","appnumber":"1"}],"workflowname":"Demultiplex"}],"username":"vagrant"}
+2018-11-19 03:02:08    [DEBUG]   	Flow::Main::orderYaml	344	project: {"projectnumber":"4","projectname":"dnaseq","xylophone":"1","workflows":[{"workflownumber":"1","apps":[{"parameters":[{"argument":"--mask-short-adapter-reads","paramtype":"input","paramname":"maskshort"},{"argument":"--use-bases-mask","paramtype":"input","value":"Y101,I8,Y10,Y101","paramname":"usebases"}],"apptype":"converter","appname":"bcl2fastq","location":"bcl2fastq","installdir":"/home/stuart.young/b/apps/bcl2fastq/2.20.0","appnumber":"1"},{"parameters":[{"argument":"--output-dir","paramtype":"input","value":"<USERHOME>/agua/<PROJECT>/<WORKFLOW>/fastq","paramname":"outputdir"}],"apptype":"converter","appname":"convert","location":"convert","installdir":"/home/stuart.young/b/apps/convert/1.0.0","appnumber":"2"}],"workflowname":"Bcl2fastq"},{"workflownumber":"2","apps":[{"parameters":[{"argument":"--mask-short-adapter-reads","paramtype":"input","paramname":"maskshort"}],"apptype":"converter","appname":"demultiplex","location":"bcl2fastq","installdir":"/home/stuart.young/b/apps/demultiplex/1.0.0","appnumber":"1"}],"workflowname":"Demultiplex"}],"username":"vagrant"}
+2018-11-19 03:02:08    [DEBUG]   	Flow::Main::orderYaml	348	project: {"projectnumber":"4","projectname":"dnaseq","xylophone":"1","username":"vagrant"}
+2018-11-19 03:02:08    [DEBUG]   	Flow::Main::orderYaml	351	output: ---
+projectname: dnaseq
+projectnumber: 4
+username: vagrant
+xylophone: 1
+
+2018-11-19 03:02:08    [DEBUG]   	Test::Flow::Main::testOrderYaml	30	actual: ---
+---
+projectname: dnaseq
+projectnumber: 4
+username: vagrant
+xylophone: 1
+workflows:
+  - workflowname: Bcl2fastq
+    workflownumber: 1
+    apps:
+    - appname: bcl2fastq
+      appnumber: 1
+      apptype: converter
+      installdir: /home/stuart.young/b/apps/bcl2fastq/2.20.0
+      location: bcl2fastq
+      parameters:
+      - argument: --mask-short-adapter-reads
+        paramname: maskshort
+        paramtype: input
+      - argument: --use-bases-mask
+        paramname: usebases
+        paramtype: input
+        value: 'Y101,I8,Y10,Y101'
+    - appname: convert
+      appnumber: 2
+      apptype: converter
+      installdir: /home/stuart.young/b/apps/convert/1.0.0
+      location: convert
+      parameters:
+      - argument: --output-dir
+        paramname: outputdir
+        paramtype: input
+        value: <USERHOME>/agua/<PROJECT>/<WORKFLOW>/fastq
+  - workflowname: Demultiplex
+    workflownumber: 2
+    apps:
+    - appname: demultiplex
+      appnumber: 1
+      apptype: converter
+      installdir: /home/stuart.young/b/apps/demultiplex/1.0.0
+      location: bcl2fastq
+      parameters:
+      - argument: --mask-short-adapter-reads
+        paramname: maskshort
+        paramtype: input
+
+2018-11-19 03:02:08    [DEBUG]   	Test::Flow::Main::testOrderYaml	32	expected: ---
+projectname: dnaseq
+projectnumber: 4
+username: vagrant
+xylophone: 1
+workflows:
+  - workflowname: Bcl2fastq
+    workflownumber: 1
+    apps:
+    - appname: bcl2fastq
+      appnumber: 1
+      apptype: converter
+      installdir: /home/stuart.young/b/apps/bcl2fastq/2.20.0
+      location: bcl2fastq
+      parameters:
+      - argument: --mask-short-adapter-reads
+        paramname: maskshort
+        paramtype: input
+      - argument: --use-bases-mask
+        paramname: usebases
+        paramtype: input
+        value: 'Y101,I8,Y10,Y101'
+    - appname: convert
+      appnumber: 2
+      apptype: converter
+      installdir: /home/stuart.young/b/apps/convert/1.0.0
+      location: convert
+      parameters:
+      - argument: --output-dir
+        paramname: outputdir
+        paramtype: input
+        value: <USERHOME>/agua/<PROJECT>/<WORKFLOW>/fastq
+  - workflowname: Demultiplex
+    workflownumber: 2
+    apps:
+    - appname: demultiplex
+      appnumber: 1
+      apptype: converter
+      installdir: /home/stuart.young/b/apps/demultiplex/1.0.0
+      location: bcl2fastq
+      parameters:
+      - argument: --mask-short-adapter-reads
+        paramname: maskshort
+        paramtype: input
+
+
+not ok 1 - correct ordered output
+1..1

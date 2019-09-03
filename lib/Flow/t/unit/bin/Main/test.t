@@ -1,22 +1,18 @@
 #!/usr/bin/perl -w
 
+#### EXTERNAL MODULES
 use Test::More qw(no_plan);
-
 use FindBin qw($Bin);
+use Getopt::Long;
+
+#### USE LIBS
 use lib "$Bin/../../../../..";
 use lib "$Bin/../../lib";
-
-#### CREATE OUTPUTS DIR
-my $outputsdir = "$Bin/outputs";
-`mkdir -p $outputsdir` if not -d $outputsdir;
-
 
 #### SET CONF FILE
 my $configfile  =   "$Bin/../../../../../../conf/config.yml";
 
-use Test::Flow::Project;
-use Getopt::Long;
-use FindBin qw($Bin);
+use Test::Flow::Main;
 use Conf::Yaml;
 
 #### SET LOG
@@ -51,12 +47,12 @@ $keyfile = $ENV{'keyfile'} if not defined $keyfile;
 my $conf = Conf::Yaml->new(
     memory      =>  1,
     inputfile	=>	$configfile,
-    log     =>  2,
-    printlog    =>  2,
+    log         =>  $log,
+    printlog    =>  $printlog,
     logfile     =>  $logfile
 );
 
-my $object = new Test::Flow::Project(
+my $object = new Test::Flow::Main(
     log			=>	$log,
     printlog    =>  $printlog,
     logfile     =>  $logfile,
@@ -64,15 +60,12 @@ my $object = new Test::Flow::Project(
     username    =>  $username
 );
 
+#### LOG
 # $object->startLog($object->logfile());
 
-#### TEST
-$object->testSave();
-$object->testSortWorkflowFiles();
-$object->testGetWorkflowFiles();
-$object->testLoadScript();
-$object->testSaveWorkflow();
-# $object->testDelete(); #### INCOMPLETE
+#### TESTS
+$object->testOrderYaml();
+# $object->testAddWorkflow();
 
 ##### CLEAN UP
 `rm -fr $Bin/outputs/*`

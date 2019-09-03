@@ -24,9 +24,9 @@ class Flow::App with (Util::Logger,
     has 'epochstarted'  => ( isa => 'Int|Undef', is => 'rw', default => undef );
     has 'epochstopped'  => ( isa => 'Int|Undef', is => 'rw', default => undef );
     has 'epochduration' => ( isa => 'Int|Undef', is => 'rw', default => undef );
-    has 'stagepid'      => ( isa => 'Int|Undef', is => 'rw', default => undef );
-    has 'stagejobid'    => ( isa => 'Int|Undef', is => 'rw', default => undef );
-    has 'workflowpid'   => ( isa => 'Int|Undef', is => 'rw', default => undef );
+    has 'stagepid'      => ( isa => 'Maybe', is => 'rw', default => undef );
+    has 'stagejobid'    => ( isa => 'Maybe', is => 'rw', default => undef );
+    has 'workflowpid'   => ( isa => 'Maybe', is => 'rw', default => undef );
 
     #### Bool
     has 'localonly'	=> ( isa => 'Bool|Undef', is => 'rw', default    => undef, documentation => q{Set to 1 if application should only be run locally, i.e., not executed on the cluster} );
