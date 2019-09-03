@@ -1,11 +1,14 @@
 #!/usr/bin/perl -w
 
 my $os = $^O;
-my $branch = undef;
+my $system = undef;
 my $archname = undef;
 if ( $os eq "darwin" ) {
-  print "Loading extlib for OSX\n";
-
+  $system = "darwin";
+  $archname=`sw_vers | grep ProductVersion`;
+  $archname =~ s/ProductVersion:\s+//;  
+  $archname =~ s/\s+//g;
+  print "Getting OSX version... $archname\n";
 }
 elsif ( $os eq "linux" ) {
   print "Loading extlib for Linux\n";
@@ -21,9 +24,9 @@ elsif ( $os eq "linux" ) {
     $version =~ s/DISTRIB_RELEASE=//;
     $version =~ s/\s+//;
     # print "version: $version\n";
-    $branch = "ubuntu$version";
-    $branch =~ s/\.//g;
-    # print "Branch: $branch\n";
+    $system = "ubuntu$version";
+    $system =~ s/\.//g;
+    # print "system: $system\n";
   }
   elsif ( -f "/etc/centos-release" ) {
     print "Getting Centos version...\n";
@@ -34,9 +37,9 @@ elsif ( $os eq "linux" ) {
     $version =~ s/\.\d+$//;
     $version =~ s/\s+//;
     # print "version: $version\n";
-    $branch = "centos$version";
-    $branch =~ s/\.//g;
-    # print "Branch: $branch\n";
+    $system = "centos$version";
+    $system =~ s/\.//g;
+    # print "system: $system\n";
   }
   else {
     print "No LSB or CentOS release file found in /etc. This Linux flavor is not supported. Use 'perlmods' executable to install perl modules to extlib directory\n";
@@ -47,12 +50,14 @@ elsif ( $os eq "MSWin32" ) {
 
 }
 
-if ( $branch and $archname ) {
-  print "extlib branch: $branch-$archname\n";
+if ( $system and $archname ) {
+  my $branch = "$system-$archname";
+  print "Branch: $branch\n";
 
   use FindBin qw($Bin);
-  # print "Bin: $Bin\n";
-  my $command = "cd $Bin/extlib; git branch -f $branch-$archname origin/$branch-$archname; git checkout $branch-$archname";
+  # my $command = "cd $Bin/extlib; git system -f $branch origin/$branch; git checkout $branch";
+  # my $command = "cd $Bin/extlib; git fetch origin $branch; git checkout $branch";
+  my $command = "cd $Bin/extlib; git checkout -b $branch; git checkout $branch; git pull origin $branch";
   print "$command\n";
   `$command`;
 }
