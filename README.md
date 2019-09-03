@@ -146,7 +146,9 @@ cpanm install YAML      -L .
 Once flow is installed and extlib is configured, you can test the 'flow' executable in the 'bin' folder.
 
 *SET PERL5LIB*
-export PERL5LIB=/Users/kbsf633/flow/extlib/lib/perl5:/Users/kbsf633/flow/extlib/lib/perl5/darwin-thread-multi-2level:/Users/kbsf633/flow/lib  
+export PERL5LIB=$FLOW_HOME/flow/extlib/lib/perl5:$PERL5LIB  
+export PERL5LIB=$FLOW_HOME/flow/extlib/lib/perl5/darwin-thread-multi-2level:$PERL5LIB  
+export PERL5LIB=:$FLOW_HOME/flow/lib:$PERL5LIB  
 
 *TEST bin/flow*  
 $FLOW_HOME/flow/bin/flow  
