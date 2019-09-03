@@ -30,3 +30,9 @@
 	path = lib/Util
 	url = https://github.com/agua/agua-util
 	branch = dev
+[submodule "lib/Ops"]
+	path = lib/Ops
+	url = https://github.com/agua/agua-ops
+[submodule "lib/Package"]
+	path = lib/Package
+	url = https://github.com/agua/agua-package
